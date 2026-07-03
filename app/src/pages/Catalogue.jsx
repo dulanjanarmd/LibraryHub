@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router";
-import { siteConfig, booksData } from "@/config";
+import { siteConfig } from "@/config";
 import { Search, ArrowRight, Clock, BookOpen } from "lucide-react";
 import gsap from "gsap";
 
@@ -14,6 +14,9 @@ export default function Catalogue() {
   const [activeCategory, setActiveCategory] = useState("ALL");
   const [sortBy, setSortBy] = useState("newest");
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
   const gridRef = useRef(null);
   const headerRef = useRef(null);
   const manifestoRef = useRef(null);
@@ -46,32 +49,41 @@ export default function Catalogue() {
     }
   }, [activeCategory, sortBy]);
 
-  const filteredBooks = useMemo(() => {
-    let filtered = [...booksData];
+  useEffect(() => {
+    const fetchBooks = async () => {
+      setLoading(true);
+      try {
+        let url = "http://localhost:8080/api/books?size=100";
+        if (searchQuery.trim()) {
+          url = `http://localhost:8080/api/books/search?query=${encodeURIComponent(searchQuery)}&size=100`;
+        }
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.success) {
+          let fetched = data.data.content;
+          
+          if (activeCategory !== "ALL") {
+            fetched = fetched.filter((b) => b.categoryName && b.categoryName.toUpperCase() === activeCategory);
+          }
+          
+          if (sortBy === "title") {
+            fetched.sort((a, b) => a.title.localeCompare(b.title));
+          } else if (sortBy === "availability") {
+            fetched.sort((a, b) => b.availableCopies - a.availableCopies);
+          }
+          
+          setBooks(fetched);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    if (activeCategory !== "ALL") {
-      filtered = filtered.filter((b) => b.category.toUpperCase() === activeCategory);
-    }
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (b) =>
-          b.title.toLowerCase().includes(q) ||
-          b.author.toLowerCase().includes(q) ||
-          b.isbn.includes(q) ||
-          b.category.toLowerCase().includes(q)
-      );
-    }
-
-    if (sortBy === "title") {
-      filtered.sort((a,  b) => a.title.localeCompare(b.title));
-    } else if (sortBy === "availability") {
-      filtered.sort((a,  b) => b.available - a.available);
-    }
-
-    return filtered;
-  }, [activeCategory, searchQuery, sortBy]);
+    const timer = setTimeout(fetchBooks, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, activeCategory, sortBy]);
 
   return (
     <div
@@ -273,7 +285,7 @@ export default function Catalogue() {
             </button>
           ))}
           <span style={{ marginLeft: "auto", opacity: 0.5, fontSize: "12px" }}>
-            {filteredBooks.length} results
+            {books.length} results
           </span>
         </div>
 
@@ -291,7 +303,7 @@ export default function Catalogue() {
           padding: "0 48px 80px",
         }}
       >
-        {filteredBooks.map((book) => (
+        {books.map((book) => (
           <div
             key={book.id}
             className="book-card"
@@ -318,7 +330,7 @@ export default function Catalogue() {
               }}
             >
               <img
-                src={book.src}
+                src={book.coverImageUrl || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=800"}
                 alt={book.title}
                 style={{
                   width: "100%",
@@ -327,7 +339,7 @@ export default function Catalogue() {
                   display: "block",
                 }}
               />
-              {book.available === 0 && (
+              {book.availableCopies === 0 && (
                 <div
                   style={{
                     position: "absolute",
@@ -366,17 +378,23 @@ export default function Catalogue() {
               }}
             >
               <BookOpen size={12} />
-              {book.available > 0 ? `Available (${book.available}/${book.copies})` : "On Loan"}
+              {book.availableCopies > 0 ? `Available (${book.availableCopies}/${book.totalCopies})` : "On Loan"}
             </div>
           </div>
         ))}
       </div>
 
       {/* Empty State */}
-      {filteredBooks.length === 0 && (
+      {!loading && books.length === 0 && (
         <div style={{ textAlign: "center", padding: "80px 48px", opacity: 0.5 }}>
           <BookOpen size={48} strokeWidth={1} style={{ marginBottom: "16px" }} />
           <p style={{ fontSize: "15px" }}>No books found matching your criteria.</p>
+        </div>
+      )}
+      
+      {loading && (
+        <div style={{ textAlign: "center", padding: "80px 48px", opacity: 0.5 }}>
+          <p style={{ fontSize: "15px" }}>Loading catalogue...</p>
         </div>
       )}
 

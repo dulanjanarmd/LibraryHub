@@ -12,8 +12,12 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import java.util.Optional;
+
 @Repository
 public interface LoanRepository extends JpaRepository<Loan, Long> {
+
+    Optional<Loan> findByBookCopyAccessionNumberAndStatus(String accessionNumber, LoanStatus status);
 
     List<Loan> findByUserIdAndStatus(Long userId, LoanStatus status);
 

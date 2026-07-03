@@ -18,5 +18,7 @@ public class CirculationRequest {
     @NotBlank(message = "User ID is required")
     private String userId;
 
+    private Long reservationId;
+
     private String notes;
 }

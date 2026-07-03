@@ -35,16 +35,7 @@ export default function Dashboard() {
   const [currentUser, setCurrentUser] = useState({ userId: "", fullName: "", email: "", role: "" });
   const navigate = useNavigate();
   const mainRef = useRef(null);
-
-  useEffect(() => {
-    if (mainRef.current) {
-      gsap.fromTo(
-        mainRef.current,
-        { opacity: 0, y: 10 },
-        { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }
-      );
-    }
-  }, [activeTab]);
+  const contentRef = useRef(null);
 
   useEffect(() => {
     const userId = localStorage.getItem("userId") || "";
@@ -161,27 +152,35 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main ref={mainRef} style={{ flex: 1, marginLeft: "250px", padding: "40px 48px" }}>
-        {/* Header */}
-        <div style={{ marginBottom: "40px" }}>
-          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "30px", fontWeight: 400, marginBottom: "8px" }}>
-            {NAV_ITEMS.find((n) => n.id === activeTab)?.label}
-          </h1>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", opacity: 0.5 }}>
-            <Clock size={13} />
-            {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+        <div
+          key={activeTab}
+          ref={contentRef}
+          style={{
+            animation: "dashFadeIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both",
+          }}
+        >
+          {/* Header */}
+          <div style={{ marginBottom: "40px" }}>
+            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "30px", fontWeight: 400, marginBottom: "8px" }}>
+              {NAV_ITEMS.find((n) => n.id === activeTab)?.label}
+            </h1>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", opacity: 0.5 }}>
+              <Clock size={13} />
+              {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+            </div>
           </div>
-        </div>
 
-        {/* Stats Row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "40px" }}>
-          <StatCard label="Active Loans" value={activeLoans} />
-          <StatCard label="Pending Reservations" value={MOCK_RESERVATIONS.length} />
-          <StatCard label="Outstanding Fines (LKR)" value={totalFines} prefix="LKR " />
-          <StatCard label="Total Borrowed" value={MOCK_HISTORY.length + MOCK_LOANS.length} />
-        </div>
+          {/* Stats Row */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "40px" }}>
+            <StatCard label="Active Loans" value={activeLoans} />
+            <StatCard label="Pending Reservations" value={MOCK_RESERVATIONS.length} />
+            <StatCard label="Outstanding Fines (LKR)" value={totalFines} prefix="LKR " />
+            <StatCard label="Total Borrowed" value={MOCK_HISTORY.length + MOCK_LOANS.length} />
+          </div>
 
-        {/* Tab Content */}
-        {renderContent()}
+          {/* Tab Content */}
+          {renderContent()}
+        </div>
       </main>
     </div>
   );
@@ -348,47 +347,61 @@ function LoansView() {
     </div>
   );
 }
-
 /* Reservations View */
 function ReservationsView() {
+  const [reservations, setReservations] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchReservations = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:8080/api/reservations/my-pending", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setReservations(data.data);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReservations();
+  }, []);
+
+  if (loading) return <div>Loading reservations...</div>;
+  
+  if (reservations.length === 0) {
+    return (
+      <div style={{ padding: "40px", textAlign: "center", border: "1px dashed rgba(29,50,5,0.2)", fontSize: "14px", opacity: 0.6 }}>
+        You have no pending reservations.
+      </div>
+    );
+  }
+
   return (
     <DataTable
-      columns={["Book Title", "Author", "Queue Position", "Est. Available", ""]}
-      data={MOCK_RESERVATIONS.map((r) => ({
-        "Book Title": <div style={{ fontWeight: 500 }}>{r.title}</div>,
-        Author: r.author,
-        "Queue Position": (
-          <span style={{ fontWeight: 600, color: r.queuePosition === 1 ? "#ff2600" : "#1d3205" }}>
-            #{r.queuePosition}
+      columns={["Book Title", "Author", "Status", "Queue Pos", "Hold Expiry"]}
+      data={reservations.map((r) => ({
+        "Book Title": <div style={{ fontWeight: 500 }}>{r.bookTitle}</div>,
+        Author: r.bookAuthor || "-",
+        Status: (
+          <span style={{ 
+            fontWeight: 600, 
+            color: r.status === 'AVAILABLE' ? '#ff2600' : '#1d3205'
+          }}>
+            {r.status === 'AVAILABLE' ? 'READY FOR PICKUP' : 'WAITING'}
           </span>
         ),
-        "Est. Available": r.estimatedDate,
-        "": (
-          <button
-            style={{
-              padding: "6px 14px",
-              fontSize: "11px",
-              fontWeight: 500,
-              textTransform: "uppercase",
-              letterSpacing: "0.06em",
-              border: "1px solid #ff2600",
-              background: "transparent",
-              color: "#ff2600",
-              cursor: "pointer",
-              fontFamily: "'Inter', sans-serif",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#ff2600";
-              e.currentTarget.style.color = "#ffffff";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "#ff2600";
-            }}
-          >
-            Cancel
-          </button>
+        "Queue Pos": (
+          <span style={{ fontWeight: 600, color: r.queuePosition === 1 ? "#ff2600" : "#1d3205" }}>
+            {r.queuePosition > 0 ? `#${r.queuePosition}` : "-"}
+          </span>
         ),
+        "Hold Expiry": r.expiryDate ? new Date(r.expiryDate).toLocaleDateString() : "-",
       }))}
     />
   );

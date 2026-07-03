@@ -55,7 +55,7 @@ public class LoanController {
     public ResponseEntity<ApiResponse<LoanDTO>> issueBook(@RequestBody CirculationRequest request) {
         Long issuedById = authService.getCurrentUser().getId();
         return ResponseEntity.ok(ApiResponse.success(
-                loanService.issueBook(request.getUserId(), request.getAccessionNumber(), issuedById),
+                loanService.issueBook(request, issuedById),
                 "Book issued successfully"));
     }
 
@@ -65,6 +65,14 @@ public class LoanController {
     public ResponseEntity<ApiResponse<LoanDTO>> returnBook(@PathVariable Long loanId) {
         return ResponseEntity.ok(ApiResponse.success(
                 loanService.returnBook(loanId), "Book returned successfully"));
+    }
+
+    @PostMapping("/circulation/return-by-accession/{accessionNumber}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
+    @Operation(summary = "Process a book return by accession number (Librarian only)")
+    public ResponseEntity<ApiResponse<LoanDTO>> returnBookByAccession(@PathVariable String accessionNumber) {
+        return ResponseEntity.ok(ApiResponse.success(
+                loanService.returnBookByAccession(accessionNumber), "Book returned successfully"));
     }
 
     @GetMapping("/circulation/overdue")

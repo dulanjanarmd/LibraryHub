@@ -11,6 +11,7 @@ C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\service\Lo
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\controller\AdminController.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\SystemConfig.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\exception\GlobalExceptionHandler.java
+C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\service\NotificationService.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\dto\AuthResponse.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\enums\UserRole.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\repository\ReservationRepository.java
@@ -38,6 +39,7 @@ C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\dto\AuthRe
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\BookCopy.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\repository\UserRepository.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\config\DataSeeder.java
+C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\dto\RegisterRequest.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\AuditLog.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\Book.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\enums\PaymentMethod.java

@@ -2,7 +2,9 @@ package com.sliit.library.service;
 
 import com.sliit.library.dto.AuthRequest;
 import com.sliit.library.dto.AuthResponse;
+import com.sliit.library.dto.RegisterRequest;
 import com.sliit.library.entity.User;
+import com.sliit.library.entity.enums.UserRole;
 import com.sliit.library.exception.LibraryException;
 import com.sliit.library.repository.UserRepository;
 import com.sliit.library.security.JwtUtil;
@@ -58,6 +60,59 @@ public class AuthService {
         );
 
         log.info("User {} logged in successfully", user.getUserId());
+
+        return AuthResponse.builder()
+                .token(token)
+                .refreshToken(refreshToken)
+                .tokenType("Bearer")
+                .expiresIn(jwtUtil.getExpirationTime())
+                .role(user.getRole())
+                .userId(user.getUserId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .build();
+    }
+
+    @Transactional
+    public AuthResponse registerStudent(RegisterRequest request) {
+        if (userRepository.existsByUserId(request.getUserId())) {
+            throw LibraryException.conflict("User ID already exists: " + request.getUserId());
+        }
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw LibraryException.conflict("Email already registered: " + request.getEmail());
+        }
+
+        User user = User.builder()
+                .userId(request.getUserId())
+                .email(request.getEmail())
+                .passwordHash(encodePassword(request.getPassword()))
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .phone(request.getPhone())
+                .faculty(request.getFaculty())
+                .programme(request.getProgramme())
+                .role(UserRole.STUDENT)
+                .isActive(true)
+                .emailVerified(false)
+                .build();
+
+        user = userRepository.save(user);
+        log.info("New student registered: {}", user.getUserId());
+
+        // Auto login after registration
+        String token = jwtUtil.generateToken(
+                new org.springframework.security.core.userdetails.User(
+                        user.getUserId(), user.getPasswordHash(), java.util.Collections.emptyList()
+                )
+        );
+        String refreshToken = jwtUtil.generateRefreshToken(
+                new org.springframework.security.core.userdetails.User(
+                        user.getUserId(), user.getPasswordHash(), java.util.Collections.emptyList()
+                )
+        );
+        
+        user.setLastLogin(LocalDateTime.now());
+        userRepository.save(user);
 
         return AuthResponse.builder()
                 .token(token)

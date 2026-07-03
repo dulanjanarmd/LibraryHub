@@ -3,6 +3,7 @@ package com.sliit.library.controller;
 import com.sliit.library.dto.ApiResponse;
 import com.sliit.library.dto.AuthRequest;
 import com.sliit.library.dto.AuthResponse;
+import com.sliit.library.dto.RegisterRequest;
 import com.sliit.library.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +25,13 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody AuthRequest request) {
         AuthResponse response = authService.authenticate(request);
         return ResponseEntity.ok(ApiResponse.success(response, "Login successful"));
+    }
+
+    @PostMapping("/register")
+    @Operation(summary = "Register a new student")
+    public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
+        AuthResponse response = authService.registerStudent(request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Registration successful"));
     }
 
     @PostMapping("/refresh")

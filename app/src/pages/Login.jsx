@@ -6,12 +6,21 @@ import { BookOpen, ArrowRight, Shield, Loader2, AlertCircle } from "lucide-react
 export default function Login() {
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
   const [role, setRole] = useState("student");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
+    e.preventDefault();
+    if (isRegistering) {
+      handleRegister();
+      return;
+    }
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -53,6 +62,42 @@ export default function Login() {
       } else {
         navigate("/dashboard");
       }
+      }
+    } catch {
+      setError("Cannot connect to server. Please make sure the backend is running.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("http://localhost:8080/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, password, firstName, lastName, email }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data?.message || "Registration failed. Please try again.");
+        setLoading(false);
+        return;
+      }
+      const authData = data?.data;
+      if (!authData?.token) {
+        setError("Registration failed. Please try again.");
+        setLoading(false);
+        return;
+      }
+      localStorage.setItem("token", authData.token);
+      localStorage.setItem("refreshToken", authData.refreshToken || "");
+      localStorage.setItem("userId", authData.userId);
+      localStorage.setItem("fullName", authData.fullName);
+      localStorage.setItem("email", authData.email);
+      localStorage.setItem("role", authData.role);
+      navigate("/dashboard");
     } catch {
       setError("Cannot connect to server. Please make sure the backend is running.");
     } finally {
@@ -154,35 +199,37 @@ export default function Login() {
             <p style={{ fontSize: "14px", opacity: 0.6 }}>Sign in to access your library account</p>
           </div>
 
-          {/* Role Selection */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "28px" }}>
-            {(["student", "faculty", "librarian", "admin"]).map((r) => (
-              <button
-                key={r}
-                onClick={() => setRole(r)}
-                style={{
-                  padding: "10px",
-                  fontSize: "11px",
-                  fontWeight: 500,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  border: "1px solid #1d3205",
-                  background: role === r ? "#1d3205" : "transparent",
-                  color: role === r ? "#ffffff" : "#1d3205",
-                  cursor: "pointer",
-                  fontFamily: "'Inter', sans-serif",
-                  transition: "all 0.3s",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "4px",
-                }}
-              >
-                {r === "admin" && <Shield size={14} />}
-                {r}
-              </button>
-            ))}
-          </div>
+          {/* Role Selection (Only in Login) */}
+          {!isRegistering && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "28px" }}>
+              {(["student", "faculty", "librarian", "admin"]).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setRole(r)}
+                  style={{
+                    padding: "10px",
+                    fontSize: "11px",
+                    fontWeight: 500,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    border: "1px solid #1d3205",
+                    background: role === r ? "#1d3205" : "transparent",
+                    color: role === r ? "#ffffff" : "#1d3205",
+                    cursor: "pointer",
+                    fontFamily: "'Inter', sans-serif",
+                    transition: "all 0.3s",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
+                  {r === "admin" && <Shield size={14} />}
+                  {r}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Error Message */}
           {error && (
@@ -205,40 +252,41 @@ export default function Login() {
           )}
 
           <form onSubmit={handleLogin}>
-            <div style={{ marginBottom: "20px" }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "11px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  marginBottom: "8px",
-                  opacity: 0.7,
-                }}
-              >
-                Student / Staff ID
-              </label>
-              <input
-                type="text"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                placeholder="Enter your ID"
-                required
-                disabled={loading}
-                style={{
-                  width: "100%",
-                  height: "56px",
-                  padding: "0 16px",
-                  border: "1px solid #1d3205",
-                  fontSize: "15px",
-                  fontFamily: "'Inter', sans-serif",
-                  color: "#1d3205",
-                  background: loading ? "#f8f8f8" : "#ffffff",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
+            <div style={{ display: "flex", gap: "16px", marginBottom: "20px" }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: "block", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px", opacity: 0.7 }}>
+                  {isRegistering ? "Student ID" : "Student / Staff ID"}
+                </label>
+                <input
+                  type="text"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                  placeholder="Enter your ID"
+                  required
+                  disabled={loading}
+                  style={{ width: "100%", height: "56px", padding: "0 16px", border: "1px solid #1d3205", fontSize: "15px", fontFamily: "'Inter', sans-serif", color: "#1d3205", background: loading ? "#f8f8f8" : "#ffffff", outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
             </div>
+
+            {isRegistering && (
+              <>
+                <div style={{ display: "flex", gap: "16px", marginBottom: "20px" }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: "block", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px", opacity: 0.7 }}>First Name</label>
+                    <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name" required disabled={loading} style={{ width: "100%", height: "56px", padding: "0 16px", border: "1px solid #1d3205", fontSize: "15px", fontFamily: "'Inter', sans-serif", color: "#1d3205", background: loading ? "#f8f8f8" : "#ffffff", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: "block", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px", opacity: 0.7 }}>Last Name</label>
+                    <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last name" required disabled={loading} style={{ width: "100%", height: "56px", padding: "0 16px", border: "1px solid #1d3205", fontSize: "15px", fontFamily: "'Inter', sans-serif", color: "#1d3205", background: loading ? "#f8f8f8" : "#ffffff", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                </div>
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{ display: "block", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px", opacity: 0.7 }}>Email</label>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email" required disabled={loading} style={{ width: "100%", height: "56px", padding: "0 16px", border: "1px solid #1d3205", fontSize: "15px", fontFamily: "'Inter', sans-serif", color: "#1d3205", background: loading ? "#f8f8f8" : "#ffffff", outline: "none", boxSizing: "border-box" }} />
+                </div>
+              </>
+            )}
 
             <div style={{ marginBottom: "24px" }}>
               <label
@@ -307,7 +355,7 @@ export default function Login() {
                 </>
               ) : (
                 <>
-                  Sign In <ArrowRight size={16} />
+                  {isRegistering ? "Create Account" : "Sign In"} <ArrowRight size={16} />
                 </>
               )}
             </button>
@@ -338,9 +386,22 @@ export default function Login() {
             <Link to="#" style={{ color: "#1d3205", opacity: 0.6, textDecoration: "underline", textUnderlineOffset: "3px" }}>
               Forgot password?
             </Link>
-            <Link to="#" style={{ color: "#1d3205", opacity: 0.6, textDecoration: "underline", textUnderlineOffset: "3px" }}>
-              Register new account
-            </Link>
+            <button
+              onClick={() => setIsRegistering(!isRegistering)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#1d3205",
+                opacity: 0.6,
+                textDecoration: "underline",
+                textUnderlineOffset: "3px",
+                cursor: "pointer",
+                fontSize: "12px",
+                padding: 0
+              }}
+            >
+              {isRegistering ? "Back to Login" : "Register new account"}
+            </button>
           </div>
         </div>
       </div>

@@ -42,6 +42,7 @@ public class BookDTO {
 
     private String categoryName;
     private String coverImageUrl;
+    private String resourceUrl;
     private Integer pageCount;
     private Integer totalCopies;
     private Integer availableCopies;

@@ -304,6 +304,69 @@ function CatalogueMgmtView() {
 
 /* Circulation */
 function CirculationView() {
+  const [accessionNumber, setAccessionNumber] = useState("");
+  const [userId, setUserId] = useState("");
+  const [reservationId, setReservationId] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleIssue = async () => {
+    if (!accessionNumber || !userId) {
+      setMessage("Error: Book Barcode and User ID are required to issue a book.");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:8080/api/circulation/issue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ accessionNumber, userId, reservationId: reservationId || null })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setMessage(`Success: Book issued to ${userId}. Due Date: ${new Date(data.data.dueDate).toLocaleDateString()}`);
+        setAccessionNumber("");
+        setUserId("");
+        setReservationId("");
+      } else {
+        setMessage(`Error: ${data.message || 'Failed to issue book'}`);
+      }
+    } catch (err) {
+      setMessage("Error: Server communication failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReturn = async () => {
+    if (!accessionNumber) {
+      setMessage("Error: Book Barcode is required to return a book.");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`http://localhost:8080/api/circulation/return-by-accession/${accessionNumber}`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setMessage(`Success: Book returned successfully. Days Overdue: ${data.data.daysOverdue}`);
+        setAccessionNumber("");
+      } else {
+        setMessage(`Error: ${data.message || 'Failed to return book'}`);
+      }
+    } catch (err) {
+      setMessage("Error: Server communication failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div>
       <div
@@ -323,14 +386,22 @@ function CirculationView() {
         <span>Fine threshold: Users with fines exceeding LKR 500 are blocked from borrowing.</span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "16px", marginBottom: "32px" }}>
+      {message && (
+        <div style={{ marginBottom: "24px", padding: "16px", background: message.startsWith("Error") ? "#ffcccc" : "#d4edda", color: message.startsWith("Error") ? "#ff2600" : "#155724", fontSize: "14px", borderRadius: "4px" }}>
+          {message}
+        </div>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "32px" }}>
         <div style={{ border: "1px solid #1d3205", padding: "20px" }}>
           <label style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.1em", opacity: 0.5, display: "block", marginBottom: "8px" }}>
-            Scan Book Barcode
+            Scan Book Barcode *
           </label>
           <input
             type="text"
             placeholder="Enter or scan barcode"
+            value={accessionNumber}
+            onChange={(e) => setAccessionNumber(e.target.value)}
             style={{
               width: "100%",
               height: "48px",
@@ -343,11 +414,32 @@ function CirculationView() {
         </div>
         <div style={{ border: "1px solid #1d3205", padding: "20px" }}>
           <label style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.1em", opacity: 0.5, display: "block", marginBottom: "8px" }}>
-            Scan User ID
+            Scan User ID *
           </label>
           <input
             type="text"
             placeholder="Enter or scan user ID"
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+            style={{
+              width: "100%",
+              height: "48px",
+              padding: "0 16px",
+              border: "1px solid #1d3205",
+              fontSize: "14px",
+              fontFamily: "'Inter', sans-serif",
+            }}
+          />
+        </div>
+        <div style={{ border: "1px dashed #1d3205", padding: "20px" }}>
+          <label style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.1em", opacity: 0.5, display: "block", marginBottom: "8px" }}>
+            Reservation ID (Optional)
+          </label>
+          <input
+            type="text"
+            placeholder="Enter reservation ID"
+            value={reservationId}
+            onChange={(e) => setReservationId(e.target.value)}
             style={{
               width: "100%",
               height: "48px",
@@ -361,9 +453,8 @@ function CirculationView() {
       </div>
 
       <div style={{ display: "flex", gap: "12px" }}>
-        <ActionButton icon={<CheckCircle size={14} />} label="Issue Book" primary />
-        <ActionButton icon={<ArrowUpDown size={14} />} label="Process Return" />
-        <ActionButton icon={<RefreshCwIcon size={14} />} label="Renew Loan" />
+        <ActionButton icon={<CheckCircle size={14} />} label={loading ? "Processing..." : "Issue Book"} primary onClick={handleIssue} disabled={loading} />
+        <ActionButton icon={<ArrowUpDown size={14} />} label={loading ? "Processing..." : "Process Return"} onClick={handleReturn} disabled={loading} />
       </div>
     </div>
   );
@@ -597,9 +688,11 @@ function FormInput({ label, placeholder, value, type = "text" }) {
   );
 }
 
-function ActionButton({ icon, label, primary }) {
+function ActionButton({ icon, label, primary, onClick, disabled }) {
   return (
     <button
+      onClick={onClick}
+      disabled={disabled}
       style={{
         padding: "14px 28px",
         fontSize: "12px",
@@ -615,6 +708,7 @@ function ActionButton({ icon, label, primary }) {
         alignItems: "center",
         gap: "8px",
         transition: "all 0.3s",
+        opacity: disabled ? 0.5 : 1,
       }}
     >
       {icon} {label}

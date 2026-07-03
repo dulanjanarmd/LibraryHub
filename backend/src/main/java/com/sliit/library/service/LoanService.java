@@ -29,6 +29,7 @@ public class LoanService {
     private final ReservationRepository reservationRepository;
     private final FineRepository fineRepository;
     private final SystemConfigRepository configRepository;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<LoanDTO> getUserLoans(Long userId, LoanStatus status) {
@@ -54,7 +55,11 @@ public class LoanService {
     }
 
     @Transactional
-    public LoanDTO issueBook(String userId, String accessionNumber, Long issuedById) {
+    public LoanDTO issueBook(com.sliit.library.dto.CirculationRequest request, Long issuedById) {
+        String userId = request.getUserId();
+        String accessionNumber = request.getAccessionNumber();
+        Long reservationId = request.getReservationId();
+
         User user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> LibraryException.notFound("User", userId));
 
@@ -73,11 +78,28 @@ public class LoanService {
         BookCopy copy = bookCopyRepository.findByAccessionNumber(accessionNumber)
                 .orElseThrow(() -> LibraryException.notFound("Book copy", accessionNumber));
 
-        if (!Boolean.TRUE.equals(copy.getIsAvailable())) {
+        if (!Boolean.TRUE.equals(copy.getIsAvailable()) && reservationId == null) {
             throw LibraryException.validation("Book copy is not available for loan");
         }
 
         Book book = copy.getBook();
+
+        if (reservationId != null) {
+            Reservation reservation = reservationRepository.findById(reservationId)
+                    .orElseThrow(() -> LibraryException.notFound("Reservation", reservationId.toString()));
+            if (!reservation.getUser().getId().equals(user.getId())) {
+                throw LibraryException.validation("Reservation does not belong to this user");
+            }
+            if (!reservation.getBook().getId().equals(book.getId())) {
+                throw LibraryException.validation("Reservation is for a different book");
+            }
+            if (reservation.getStatus() != ReservationStatus.AVAILABLE && reservation.getStatus() != ReservationStatus.PENDING) {
+                throw LibraryException.validation("Reservation is not active");
+            }
+            reservation.setStatus(ReservationStatus.FULFILLED);
+            reservationRepository.save(reservation);
+        }
+
         User issuedBy = userRepository.findById(issuedById)
                 .orElseThrow(() -> LibraryException.notFound("Librarian", issuedById.toString()));
 
@@ -104,6 +126,13 @@ public class LoanService {
         log.info("Book issued: {} to {} (Loan ID: {})", book.getTitle(), user.getUserId(), saved.getId());
 
         return mapToDTO(saved);
+    }
+
+    @Transactional
+    public LoanDTO returnBookByAccession(String accessionNumber) {
+        Loan loan = loanRepository.findByBookCopyAccessionNumberAndStatus(accessionNumber, LoanStatus.ACTIVE)
+                .orElseThrow(() -> LibraryException.validation("No active loan found for this book copy"));
+        return returnBook(loan.getId());
     }
 
     @Transactional
@@ -196,6 +225,8 @@ public class LoanService {
                     reservationRepository.save(reservation);
                     log.info("Reservation {} marked as available for user {}",
                             reservation.getId(), reservation.getUser().getUserId());
+                    
+                    notificationService.sendReservationAvailableNotification(reservation);
                 });
     }
 

@@ -90,6 +90,7 @@ public class BookService {
                 .format(dto.getFormat())
                 .category(category)
                 .coverImageUrl(dto.getCoverImageUrl())
+                .resourceUrl(dto.getResourceUrl())
                 .pageCount(dto.getPageCount())
                 .totalCopies(dto.getTotalCopies() != null ? dto.getTotalCopies() : 1)
                 .availableCopies(dto.getTotalCopies() != null ? dto.getTotalCopies() : 1)
@@ -115,6 +116,7 @@ public class BookService {
         if (dto.getDescription() != null) book.setDescription(dto.getDescription());
         if (dto.getDdcNumber() != null) book.setDdcNumber(dto.getDdcNumber());
         if (dto.getCoverImageUrl() != null) book.setCoverImageUrl(dto.getCoverImageUrl());
+        if (dto.getResourceUrl() != null) book.setResourceUrl(dto.getResourceUrl());
         if (dto.getShelfLocation() != null) book.setShelfLocation(dto.getShelfLocation());
 
         if (dto.getCategoryId() != null) {
@@ -182,6 +184,7 @@ public class BookService {
                 .categoryId(book.getCategory() != null ? book.getCategory().getId() : null)
                 .categoryName(book.getCategory() != null ? book.getCategory().getName() : null)
                 .coverImageUrl(book.getCoverImageUrl())
+                .resourceUrl(book.getResourceUrl())
                 .pageCount(book.getPageCount())
                 .totalCopies(book.getTotalCopies())
                 .availableCopies(book.getAvailableCopies())

@@ -1,11 +1,61 @@
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router";
-import { siteConfig, booksData } from "@/config";
-import { ArrowLeft, BookOpen, Calendar, Hash, Building2, Layers, Tag, CheckCircle, XCircle } from "lucide-react";
+import { siteConfig } from "@/config";
+import { ArrowLeft, BookOpen, Calendar, Hash, Building2, Layers, Tag, CheckCircle, XCircle, Download } from "lucide-react";
 
 export default function BookDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const book = booksData.find((b) => b.id === id);
+  const [book, setBook] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [reserving, setReserving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    fetch(`http://localhost:8080/api/books/${id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setBook(data.data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [id]);
+
+  const handleReserve = async () => {
+    setReserving(true);
+    setMessage("");
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+      const res = await fetch(`http://localhost:8080/api/reservations/book/${id}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage("Reservation successful! You will be notified when the book is available.");
+      } else {
+        setMessage(data?.message || "Failed to reserve the book.");
+      }
+    } catch (err) {
+      setMessage("Error connecting to the server.");
+    } finally {
+      setReserving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        Loading...
+      </div>
+    );
+  }
 
   if (!book) {
     return (
@@ -19,10 +69,10 @@ export default function BookDetail() {
     );
   }
 
-  const isAvailable = book.available > 0;
-  const relatedBooks = booksData
-    .filter((b) => b.category === book.category && b.id !== book.id)
-    .slice(0, 4);
+  const isAvailable = book.availableCopies > 0;
+  const isEbook = book.format === 'EBOOK';
+  // Note: related books fetch not implemented to save complexity, using empty array
+  const relatedBooks = [];
 
   return (
     <div style={{ minHeight: "100vh", background: "#ffffff", color: "#1d3205", fontFamily: "'Inter', system-ui, sans-serif" }}>
@@ -69,7 +119,7 @@ export default function BookDetail() {
           {/* Left: Cover */}
           <div>
             <div style={{ aspectRatio: "2/3", background: "#f5f5f5", overflow: "hidden", marginBottom: "24px" }}>
-              <img src={book.src} alt={book.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              <img src={book.coverImageUrl || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=800"} alt={book.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
             </div>
             <div
               style={{
@@ -85,15 +135,15 @@ export default function BookDetail() {
                 color: "#ffffff",
               }}
             >
-              {isAvailable ? <CheckCircle size={14} /> : <XCircle size={14} />}
-              {isAvailable ? `Available (${book.available} of ${book.copies})` : "Currently On Loan"}
+              {isAvailable || isEbook ? <CheckCircle size={14} /> : <XCircle size={14} />}
+              {isEbook ? "Digital Copy Available" : (isAvailable ? `Available (${book.availableCopies} of ${book.totalCopies})` : "Currently On Loan")}
             </div>
           </div>
 
           {/* Right: Details */}
           <div>
             <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.12em", opacity: 0.5, marginBottom: "12px" }}>
-              {book.category}
+              {book.categoryName || 'General'}
             </div>
             <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(32px, 3.6vw, 52px)", fontWeight: 400, lineHeight: 1.1, marginBottom: "16px" }}>
               {book.title}
@@ -107,27 +157,53 @@ export default function BookDetail() {
             </p>
 
             {/* Action Buttons */}
-            <div style={{ display: "flex", gap: "12px", marginBottom: "48px" }}>
-              <button
-                disabled={!isAvailable}
-                style={{
-                  padding: "14px 32px",
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                  background: isAvailable ? "#ff2600" : "#cccccc",
-                  color: "#ffffff",
-                  border: "none",
-                  cursor: isAvailable ? "pointer" : "not-allowed",
-                  fontFamily: "'Inter', sans-serif",
-                  transition: "background 0.3s",
-                }}
-                onMouseEnter={(e) => isAvailable && (e.currentTarget.style.background = "#1d3205")}
-                onMouseLeave={(e) => isAvailable && (e.currentTarget.style.background = "#ff2600")}
-              >
-                {isAvailable ? "Borrow Book" : "Reserve"}
-              </button>
+            <div style={{ display: "flex", gap: "12px", marginBottom: "20px" }}>
+              {isEbook ? (
+                 <a
+                 href={book.resourceUrl || "#"}
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 style={{
+                   display: "inline-flex",
+                   alignItems: "center",
+                   gap: "8px",
+                   padding: "14px 32px",
+                   fontSize: "13px",
+                   fontWeight: 600,
+                   textTransform: "uppercase",
+                   letterSpacing: "0.08em",
+                   background: "#1d3205",
+                   color: "#ffffff",
+                   textDecoration: "none",
+                   fontFamily: "'Inter', sans-serif",
+                   transition: "background 0.3s",
+                 }}
+               >
+                 <Download size={16} /> Read Online / Download
+               </a>
+              ) : (
+                <button
+                  disabled={reserving || isAvailable}
+                  onClick={handleReserve}
+                  style={{
+                    padding: "14px 32px",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    background: isAvailable ? "#cccccc" : "#ff2600",
+                    color: "#ffffff",
+                    border: "none",
+                    cursor: (isAvailable || reserving) ? "not-allowed" : "pointer",
+                    fontFamily: "'Inter', sans-serif",
+                    transition: "background 0.3s",
+                  }}
+                  onMouseEnter={(e) => !isAvailable && !reserving && (e.currentTarget.style.background = "#1d3205")}
+                  onMouseLeave={(e) => !isAvailable && !reserving && (e.currentTarget.style.background = "#ff2600")}
+                >
+                  {reserving ? "Processing..." : (isAvailable ? "Borrow in Person" : "Reserve (Join Queue)")}
+                </button>
+              )}
               <button
                 style={{
                   padding: "14px 32px",
@@ -155,14 +231,20 @@ export default function BookDetail() {
               </button>
             </div>
 
+            {message && (
+              <div style={{ marginBottom: "24px", padding: "12px", background: message.includes("Error") || message.includes("Failed") ? "#ffcccc" : "#d4edda", color: message.includes("Error") || message.includes("Failed") ? "#ff2600" : "#155724", fontSize: "14px", borderRadius: "4px" }}>
+                {message}
+              </div>
+            )}
+
             {/* Metadata Grid */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "16px", maxWidth: "500px" }}>
               <MetaItem icon={<Hash size={14} />} label="ISBN" value={book.isbn} />
               <MetaItem icon={<Building2 size={14} />} label="Publisher" value={book.publisher} />
-              <MetaItem icon={<Calendar size={14} />} label="Year" value={book.year > 0 ? String(book.year) : "Classic"} />
+              <MetaItem icon={<Calendar size={14} />} label="Year" value={book.publicationYear || "Unknown"} />
               <MetaItem icon={<Layers size={14} />} label="Format" value={book.format} />
-              <MetaItem icon={<Tag size={14} />} label="DDC" value={book.ddc} />
-              <MetaItem icon={<BookOpen size={14} />} label="Copies" value={`${book.available} / ${book.copies}`} />
+              <MetaItem icon={<Tag size={14} />} label="DDC" value={book.ddcNumber} />
+              <MetaItem icon={<BookOpen size={14} />} label="Copies" value={`${book.availableCopies} / ${book.totalCopies}`} />
             </div>
           </div>
         </div>

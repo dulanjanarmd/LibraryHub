@@ -62,6 +62,9 @@ public class Book {
     @Column(name = "cover_image_url", length = 500)
     private String coverImageUrl;
 
+    @Column(name = "resource_url", length = 500)
+    private String resourceUrl;
+
     @Column(name = "page_count")
     private Integer pageCount;
 

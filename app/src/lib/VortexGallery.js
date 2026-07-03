@@ -151,7 +151,7 @@ export default class VortexGallery {
     this.camera.position.z = 5;
 
     this.renderer = new THREE.WebGLRenderer({
-      canv,
+      canvas,
       alpha: false,
       antialias: true,
     });
