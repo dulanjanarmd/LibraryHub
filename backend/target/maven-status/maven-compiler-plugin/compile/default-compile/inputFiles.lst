@@ -37,6 +37,7 @@ C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\dto\LoanDT
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\dto\AuthRequest.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\BookCopy.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\repository\UserRepository.java
+C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\config\DataSeeder.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\AuditLog.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\Book.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\enums\PaymentMethod.java

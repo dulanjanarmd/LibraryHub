@@ -48,6 +48,7 @@ com\sliit\library\repository\LoanRepository.class
 com\sliit\library\dto\UserDTO$UserDTOBuilder.class
 com\sliit\library\entity\User$UserBuilder.class
 com\sliit\library\entity\SystemConfig$SystemConfigBuilder.class
+com\sliit\library\config\DataSeeder.class
 com\sliit\library\entity\enums\UserRole.class
 com\sliit\library\config\OpenApiConfig.class
 com\sliit\library\dto\ReservationDTO$ReservationDTOBuilder.class
