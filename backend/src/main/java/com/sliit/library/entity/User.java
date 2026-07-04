@@ -69,6 +69,16 @@ public class User {
     @Column(name = "email_verified", nullable = false)
     private Boolean emailVerified;
 
+    @Column(name = "is_member", nullable = false)
+    private Boolean isMember;
+
+    @Column(name = "membership_id", unique = true, length = 50)
+    private String membershipId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "membership_status", nullable = false)
+    private com.sliit.library.entity.enums.MembershipStatus membershipStatus;
+
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
 
@@ -93,8 +103,15 @@ public class User {
         if (this.loanPeriodDays == null) {
             this.loanPeriodDays = this.role != null ? this.role.getDefaultLoanPeriod() : 14;
         }
-        if (this.isActive == null) this.isActive = true;
-        if (this.isMfaEnabled == null) this.isMfaEnabled = false;
-        if (this.emailVerified == null) this.emailVerified = false;
+        if (this.isActive == null)
+            this.isActive = true;
+        if (this.isMfaEnabled == null)
+            this.isMfaEnabled = false;
+        if (this.emailVerified == null)
+            this.emailVerified = false;
+        if (this.isMember == null)
+            this.isMember = false;
+        if (this.membershipStatus == null)
+            this.membershipStatus = com.sliit.library.entity.enums.MembershipStatus.NONE;
     }
 }

@@ -53,7 +53,7 @@ export default function Home() {
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/catalogue`);
+      navigate(`/catalogue?query=${encodeURIComponent(searchQuery)}`);
     }
   };
 

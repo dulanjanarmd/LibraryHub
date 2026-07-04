@@ -2,6 +2,7 @@ C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\Ann
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\Fine.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\Loan.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\service\AuthService.java
+C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\controller\MembershipController.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\controller\DashboardController.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\dto\BookDTO.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\repository\AuditLogRepository.java
@@ -9,6 +10,7 @@ C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\controller
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\Reservation.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\service\LoanService.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\controller\AdminController.java
+C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\enums\MembershipStatus.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\SystemConfig.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\exception\GlobalExceptionHandler.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\service\NotificationService.java
@@ -18,6 +20,7 @@ C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\repository
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\enums\LoanStatus.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\exception\LibraryException.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\security\JwtAuthenticationFilter.java
+C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\dto\ForgotPasswordRequest.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\OlmsApplication.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\dto\UserDTO.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\repository\FineRepository.java
@@ -34,6 +37,7 @@ C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\dto\Circul
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\repository\BookRepository.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\dto\FineDTO.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\controller\UserController.java
+C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\repository\MembershipApplicationRepository.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\dto\LoanDTO.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\dto\AuthRequest.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\BookCopy.java
@@ -51,8 +55,10 @@ C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\service\Re
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\Category.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\dto\ApiResponse.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\repository\SystemConfigRepository.java
+C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\service\MembershipService.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\dto\PagedResponse.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\ReadingListItem.java
+C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\MembershipApplication.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\config\SecurityConfig.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\entity\User.java
 C:\Users\damin\Documents\SLMS\backend\src\main\java\com\sliit\library\controller\BookController.java

@@ -5,7 +5,9 @@ import Catalogue from './pages/Catalogue'
 import BookDetail from './pages/BookDetail'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import FacultyDashboard from './pages/FacultyDashboard'
 import Admin from './pages/Admin'
+import Membership from './pages/Membership'
 
 export default function App() {
   return (
@@ -16,7 +18,9 @@ export default function App() {
       <Route path="/book/:id" element={<BookDetail />} />
       <Route path="/login" element={<Login />} />
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/faculty" element={<FacultyDashboard />} />
       <Route path="/admin" element={<Admin />} />
+      <Route path="/membership" element={<Membership />} />
     </Routes>
   )
 }

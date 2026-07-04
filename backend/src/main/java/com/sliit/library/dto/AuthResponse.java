@@ -19,4 +19,7 @@ public class AuthResponse {
     private String userId;
     private String fullName;
     private String email;
+    private Boolean isMember;
+    private String membershipId;
+    private com.sliit.library.entity.enums.MembershipStatus membershipStatus;
 }

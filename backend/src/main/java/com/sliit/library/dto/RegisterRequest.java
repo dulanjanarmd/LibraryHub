@@ -34,4 +34,6 @@ public class RegisterRequest {
     private String phone;
     private String faculty;
     private String programme;
+    // Optional role: student | faculty | librarian
+    private String role;
 }

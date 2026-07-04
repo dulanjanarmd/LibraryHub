@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useLocation } from "react-router";
 import { siteConfig } from "@/config";
 import { Search, ArrowRight, Clock, BookOpen } from "lucide-react";
 import gsap from "gsap";
@@ -21,6 +21,7 @@ export default function Catalogue() {
   const headerRef = useRef(null);
   const manifestoRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -48,6 +49,12 @@ export default function Catalogue() {
       );
     }
   }, [activeCategory, sortBy]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const query = params.get("query") || "";
+    setSearchQuery(query);
+  }, [location.search]);
 
   useEffect(() => {
     const fetchBooks = async () => {

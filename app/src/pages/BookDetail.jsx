@@ -36,6 +36,11 @@ export default function BookDetail() {
           "Authorization": `Bearer ${token}`
         }
       });
+      if (res.status === 401) {
+        localStorage.clear();
+        navigate("/login");
+        return;
+      }
       const data = await res.json();
       if (res.ok) {
         setMessage("Reservation successful! You will be notified when the book is available.");
@@ -71,6 +76,7 @@ export default function BookDetail() {
 
   const isAvailable = book.availableCopies > 0;
   const isEbook = book.format === 'EBOOK';
+  const isMember = localStorage.getItem("isMember") === "true";
   // Note: related books fetch not implemented to save complexity, using empty array
   const relatedBooks = [];
 
@@ -159,28 +165,49 @@ export default function BookDetail() {
             {/* Action Buttons */}
             <div style={{ display: "flex", gap: "12px", marginBottom: "20px" }}>
               {isEbook ? (
-                 <a
-                 href={book.resourceUrl || "#"}
-                 target="_blank"
-                 rel="noopener noreferrer"
-                 style={{
-                   display: "inline-flex",
-                   alignItems: "center",
-                   gap: "8px",
-                   padding: "14px 32px",
-                   fontSize: "13px",
-                   fontWeight: 600,
-                   textTransform: "uppercase",
-                   letterSpacing: "0.08em",
-                   background: "#1d3205",
-                   color: "#ffffff",
-                   textDecoration: "none",
-                   fontFamily: "'Inter', sans-serif",
-                   transition: "background 0.3s",
-                 }}
-               >
-                 <Download size={16} /> Read Online / Download
-               </a>
+                 isMember ? (
+                   <a
+                     href={book.resourceUrl || "#"}
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     style={{
+                       display: "inline-flex",
+                       alignItems: "center",
+                       gap: "8px",
+                       padding: "14px 32px",
+                       fontSize: "13px",
+                       fontWeight: 600,
+                       textTransform: "uppercase",
+                       letterSpacing: "0.08em",
+                       background: "#1d3205",
+                       color: "#ffffff",
+                       textDecoration: "none",
+                       fontFamily: "'Inter', sans-serif",
+                       transition: "background 0.3s",
+                     }}
+                   >
+                     <Download size={16} /> Read Online / Download
+                   </a>
+                 ) : (
+                   <button
+                     onClick={() => navigate('/membership')}
+                     style={{
+                       padding: "14px 32px",
+                       fontSize: "13px",
+                       fontWeight: 600,
+                       textTransform: "uppercase",
+                       letterSpacing: "0.08em",
+                       background: "#cccccc",
+                       color: "#1d3205",
+                       border: "none",
+                       cursor: "pointer",
+                       fontFamily: "'Inter', sans-serif",
+                       transition: "background 0.3s",
+                     }}
+                   >
+                     Apply for Membership to Access
+                   </button>
+                 )
               ) : (
                 <button
                   disabled={reserving || isAvailable}

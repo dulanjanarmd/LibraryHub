@@ -38,12 +38,18 @@ export default function Dashboard() {
   const contentRef = useRef(null);
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
     const userId = localStorage.getItem("userId") || "";
     const fullName = localStorage.getItem("fullName") || "Library Member";
     const email = localStorage.getItem("email") || "";
     const role = localStorage.getItem("role") || "UNDERGRADUATE";
     setCurrentUser({ userId, fullName, email, role });
-  }, []);
+  }, [navigate]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -91,8 +97,12 @@ export default function Dashboard() {
           <Link to="/" style={{ fontFamily: "'Playfair Display', serif", fontSize: "20px", color: "#ffffff", textDecoration: "none" }}>
             {siteConfig.brandName}
           </Link>
-          <div style={{ fontSize: "11px", opacity: 0.6, marginTop: "4px", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-            Student Portal
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px", fontSize: "11px", opacity: 0.7, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+            <span>Student Portal</span>
+            <span style={{ opacity: 0.4 }}>|</span>
+            <Link to="/catalogue" style={{ color: "#ffffff", textDecoration: "none", opacity: 0.85 }}>
+              Browse Catalogue
+            </Link>
           </div>
         </div>
 
@@ -359,6 +369,11 @@ function ReservationsView() {
         const res = await fetch("http://localhost:8080/api/reservations/my-pending", {
           headers: { "Authorization": `Bearer ${token}` }
         });
+        if (res.status === 401) {
+          localStorage.clear();
+          navigate("/login");
+          return;
+        }
         const data = await res.json();
         if (data.success) {
           setReservations(data.data);

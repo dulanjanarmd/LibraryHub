@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { siteConfig } from "@/config";
-import { BookOpen, ArrowRight, Shield, Loader2, AlertCircle } from "lucide-react";
+import { BookOpen, ArrowRight, Shield, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function Login() {
   const [userId, setUserId] = useState("");
@@ -12,24 +12,89 @@ export default function Login() {
   const [role, setRole] = useState("student");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const navigate = useNavigate();
+
+  const getRoleDisplayName = (role) => {
+    switch (role) {
+      case "faculty":
+        return "Faculty Member";
+      case "librarian":
+        return "Librarian";
+      case "admin":
+        return "Admin";
+      default:
+        return "Student";
+    }
+  };
+
+  const getAllowedAuthRoles = (selectedRole) => {
+    switch (selectedRole) {
+      case "faculty":
+        return ["FACULTY"];
+      case "librarian":
+        return ["LIBRARIAN"];
+      case "admin":
+        return ["ADMIN"];
+      default:
+        return ["UNDERGRADUATE", "POSTGRADUATE"];
+    }
+  };
+
+  const isRegisterAllowedForRole = (selectedRole) => {
+    return selectedRole === "student" || selectedRole === "faculty";
+  };
+
+  const getIdPlaceholder = (selectedRole) => {
+    switch (selectedRole) {
+      case "faculty":
+        return "e.g. ST20210045";
+      case "librarian":
+        return "e.g. LIB001";
+      case "admin":
+        return "e.g. ADMIN001";
+      default:
+        return "e.g. IT20234567";
+    }
+  };
+
+  const getVisibleRoles = () => {
+    return isRegistering ? ["student", "faculty"] : ["student", "faculty", "librarian", "admin"];
+  };
+
+  const persistAuth = (authData) => {
+    localStorage.setItem("token", authData.token);
+    localStorage.setItem("refreshToken", authData.refreshToken || "");
+    localStorage.setItem("userId", authData.userId);
+    localStorage.setItem("fullName", authData.fullName);
+    localStorage.setItem("email", authData.email);
+    localStorage.setItem("role", authData.role);
+    localStorage.setItem("isMember", authData.isMember ? "true" : "false");
+    localStorage.setItem("membershipId", authData.membershipId || "");
+    localStorage.setItem("membershipStatus", authData.membershipStatus || "");
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
     if (isRegistering) {
-      handleRegister();
+      await handleRegister();
       return;
     }
-    e.preventDefault();
+    if (isForgotPassword) {
+      await handleForgotPassword();
+      return;
+    }
     setError("");
+    setSuccess("");
     setLoading(true);
 
     try {
       const res = await fetch("http://localhost:8080/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, password }),
+        body: JSON.stringify({ userId, password, role }),
       });
 
       const data = await res.json();
@@ -47,21 +112,23 @@ export default function Login() {
         return;
       }
 
-      // Store auth info in localStorage
-      localStorage.setItem("token", authData.token);
-      localStorage.setItem("refreshToken", authData.refreshToken || "");
-      localStorage.setItem("userId", authData.userId);
-      localStorage.setItem("fullName", authData.fullName);
-      localStorage.setItem("email", authData.email);
-      localStorage.setItem("role", authData.role);
+      const userRole = String(authData.role || "").toUpperCase();
+      const allowedRoles = getAllowedAuthRoles(role);
+      if (!allowedRoles.includes(userRole)) {
+        setError(
+          `This login form is for ${getRoleDisplayName(role)} accounts. The provided credentials belong to a ${userRole} account. Please select the correct login type.`
+        );
+        setLoading(false);
+        return;
+      }
 
-      // Navigate based on role returned from backend
-      const userRole = (authData.role).toUpperCase();
+      persistAuth(authData);
       if (userRole === "ADMIN" || userRole === "LIBRARIAN") {
         navigate("/admin");
+      } else if (userRole === "FACULTY") {
+        navigate("/faculty");
       } else {
         navigate("/dashboard");
-      }
       }
     } catch {
       setError("Cannot connect to server. Please make sure the backend is running.");
@@ -72,12 +139,18 @@ export default function Login() {
 
   const handleRegister = async () => {
     setError("");
+    setSuccess("");
     setLoading(true);
     try {
+      if (!isRegisterAllowedForRole(role)) {
+        setError("Librarian and admin accounts cannot self-register. Please login with your assigned credentials.");
+        setLoading(false);
+        return;
+      }
       const res = await fetch("http://localhost:8080/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, password, firstName, lastName, email }),
+        body: JSON.stringify({ userId, password, firstName, lastName, email, role }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -91,13 +164,42 @@ export default function Login() {
         setLoading(false);
         return;
       }
-      localStorage.setItem("token", authData.token);
-      localStorage.setItem("refreshToken", authData.refreshToken || "");
-      localStorage.setItem("userId", authData.userId);
-      localStorage.setItem("fullName", authData.fullName);
-      localStorage.setItem("email", authData.email);
-      localStorage.setItem("role", authData.role);
-      navigate("/dashboard");
+      persistAuth(authData);
+      setSuccess("Account created successfully. You are now signed in.");
+      const userRole = String(authData.role || "").toUpperCase();
+      if (userRole === "ADMIN" || userRole === "LIBRARIAN") {
+        navigate("/admin");
+      } else if (userRole === "FACULTY") {
+        navigate("/faculty");
+      } else {
+        navigate("/dashboard");
+      }
+    } catch {
+      setError("Cannot connect to server. Please make sure the backend is running.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setError("");
+    setSuccess("");
+    setLoading(true);
+    try {
+      const res = await fetch("http://localhost:8080/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data?.message || "Unable to reset password right now.");
+        setLoading(false);
+        return;
+      }
+      setSuccess(`Temporary password generated: ${data?.data || "check your inbox"}. Please sign in with it and update your password.`);
+      setIsForgotPassword(false);
+      setPassword("");
     } catch {
       setError("Cannot connect to server. Please make sure the backend is running.");
     } finally {
@@ -196,16 +298,28 @@ export default function Login() {
             >
               Library Portal
             </h1>
-            <p style={{ fontSize: "14px", opacity: 0.6 }}>Sign in to access your library account</p>
+            <p style={{ fontSize: "14px", opacity: 0.6 }}>
+              {isRegistering
+                ? `Register as a ${getRoleDisplayName(role)}`
+                : isForgotPassword
+                ? `Reset password for ${getRoleDisplayName(role)}`
+                : `Login as ${getRoleDisplayName(role)}`}
+            </p>
           </div>
 
-          {/* Role Selection (Only in Login) */}
-          {!isRegistering && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "28px" }}>
-              {(["student", "faculty", "librarian", "admin"]).map((r) => (
+          {/* Role Selection */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "12px" }}>
+              {getVisibleRoles().map((r) => (
                 <button
                   key={r}
-                  onClick={() => setRole(r)}
+                  onClick={() => {
+                    setRole(r);
+                    setError("");
+                    setSuccess("");
+                    if ((r === "librarian" || r === "admin") && isRegistering) {
+                      setIsRegistering(false);
+                    }
+                  }}
                   style={{
                     padding: "10px",
                     fontSize: "11px",
@@ -229,9 +343,11 @@ export default function Login() {
                 </button>
               ))}
             </div>
-          )}
+            <div style={{ marginBottom: "24px", fontSize: "12px", opacity: 0.75, color: "#3b4b34" }}>
+              Use the selected tab to login with the correct account type. Student login requires student ID, faculty login requires faculty member ID, and librarian/admin use their unique librarian/admin ID.
+            </div>
 
-          {/* Error Message */}
+          {/* Error / Success Message */}
           {error && (
             <div
               style={{
@@ -250,24 +366,45 @@ export default function Login() {
               {error}
             </div>
           )}
+          {success && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                padding: "14px 16px",
+                background: "#f4fbf0",
+                border: "1px solid #4caf50",
+                color: "#2e7d32",
+                fontSize: "13px",
+                marginBottom: "20px",
+              }}
+            >
+              <CheckCircle2 size={16} />
+              {success}
+            </div>
+          )}
 
           <form onSubmit={handleLogin}>
-            <div style={{ display: "flex", gap: "16px", marginBottom: "20px" }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: "block", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px", opacity: 0.7 }}>
-                  {isRegistering ? "Student ID" : "Student / Staff ID"}
-                </label>
-                <input
-                  type="text"
-                  value={userId}
-                  onChange={(e) => setUserId(e.target.value)}
-                  placeholder="Enter your ID"
-                  required
-                  disabled={loading}
-                  style={{ width: "100%", height: "56px", padding: "0 16px", border: "1px solid #1d3205", fontSize: "15px", fontFamily: "'Inter', sans-serif", color: "#1d3205", background: loading ? "#f8f8f8" : "#ffffff", outline: "none", boxSizing: "border-box" }}
-                />
+
+            {!isForgotPassword && (
+              <div style={{ display: "flex", gap: "16px", marginBottom: "20px" }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px", opacity: 0.7 }}>
+                    {getRoleDisplayName(role)} ID
+                  </label>
+                  <input
+                    type="text"
+                    value={userId}
+                    onChange={(e) => setUserId(e.target.value)}
+                    placeholder={getIdPlaceholder(role)}
+                    required={!isForgotPassword}
+                    disabled={loading}
+                    style={{ width: "100%", height: "56px", padding: "0 16px", border: "1px solid #1d3205", fontSize: "15px", fontFamily: "'Inter', sans-serif", color: "#1d3205", background: loading ? "#f8f8f8" : "#ffffff", outline: "none", boxSizing: "border-box" }}
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {isRegistering && (
               <>
@@ -288,40 +425,55 @@ export default function Login() {
               </>
             )}
 
-            <div style={{ marginBottom: "24px" }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "11px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  marginBottom: "8px",
-                  opacity: 0.7,
-                }}
-              >
-                Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                required
-                disabled={loading}
-                style={{
-                  width: "100%",
-                  height: "56px",
-                  padding: "0 16px",
-                  border: "1px solid #1d3205",
-                  fontSize: "15px",
-                  fontFamily: "'Inter', sans-serif",
-                  color: "#1d3205",
-                  background: loading ? "#f8f8f8" : "#ffffff",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
+            {isForgotPassword ? (
+              <div style={{ marginBottom: "24px" }}>
+                <label style={{ display: "block", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px", opacity: 0.7 }}>Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  required
+                  disabled={loading}
+                  style={{ width: "100%", height: "56px", padding: "0 16px", border: "1px solid #1d3205", fontSize: "15px", fontFamily: "'Inter', sans-serif", color: "#1d3205", background: loading ? "#f8f8f8" : "#ffffff", outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+            ) : (
+              <div style={{ marginBottom: "24px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "11px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.1em",
+                    marginBottom: "8px",
+                    opacity: 0.7,
+                  }}
+                >
+                  Password
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required={!isRegistering}
+                  disabled={loading}
+                  style={{
+                    width: "100%",
+                    height: "56px",
+                    padding: "0 16px",
+                    border: "1px solid #1d3205",
+                    fontSize: "15px",
+                    fontFamily: "'Inter', sans-serif",
+                    color: "#1d3205",
+                    background: loading ? "#f8f8f8" : "#ffffff",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+            )}
 
             <button
               type="submit"
@@ -351,11 +503,11 @@ export default function Login() {
               {loading ? (
                 <>
                   <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />
-                  Signing In...
+                  {isForgotPassword ? "Resetting Password..." : isRegistering ? "Creating Account..." : "Signing In..."}
                 </>
               ) : (
                 <>
-                  {isRegistering ? "Create Account" : "Sign In"} <ArrowRight size={16} />
+                  {isForgotPassword ? "Reset Password" : isRegistering ? "Create Account" : "Sign In"} <ArrowRight size={16} />
                 </>
               )}
             </button>
@@ -383,25 +535,46 @@ export default function Login() {
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px" }}>
-            <Link to="#" style={{ color: "#1d3205", opacity: 0.6, textDecoration: "underline", textUnderlineOffset: "3px" }}>
-              Forgot password?
-            </Link>
             <button
-              onClick={() => setIsRegistering(!isRegistering)}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "#1d3205",
-                opacity: 0.6,
-                textDecoration: "underline",
-                textUnderlineOffset: "3px",
-                cursor: "pointer",
-                fontSize: "12px",
-                padding: 0
+              type="button"
+              onClick={() => {
+                setError("");
+                setSuccess("");
+                setIsForgotPassword(true);
+                setIsRegistering(false);
               }}
+              style={{ background: "transparent", border: "none", color: "#1d3205", opacity: 0.6, textDecoration: "underline", textUnderlineOffset: "3px", cursor: "pointer", fontSize: "12px", padding: 0 }}
             >
-              {isRegistering ? "Back to Login" : "Register new account"}
+              Forgot password?
             </button>
+            {isRegisterAllowedForRole(role) ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setError("");
+                  setSuccess("");
+                  setIsRegistering(!isRegistering);
+                  setIsForgotPassword(false);
+                }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#1d3205",
+                  opacity: 0.6,
+                  textDecoration: "underline",
+                  textUnderlineOffset: "3px",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  padding: 0
+                }}
+              >
+                {isRegistering ? "Back to Login" : "Register new account"}
+              </button>
+            ) : (
+              <div style={{ color: "#1d3205", opacity: 0.7, textAlign: "right" }}>
+                Librarian and admin accounts are created in the database only. Please login with your assigned credentials.
+              </div>
+            )}
           </div>
         </div>
       </div>

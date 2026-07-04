@@ -29,6 +29,10 @@ CREATE TABLE IF NOT EXISTS users (
     is_mfa_enabled  BOOLEAN NOT NULL DEFAULT FALSE,
     mfa_secret      VARCHAR(255),
     email_verified  BOOLEAN NOT NULL DEFAULT FALSE,
+    -- Membership fields
+    is_member       BOOLEAN NOT NULL DEFAULT FALSE,
+    membership_id   VARCHAR(50) UNIQUE,
+    membership_status ENUM('NONE','PENDING','APPROVED','REJECTED') NOT NULL DEFAULT 'NONE',
     last_login      DATETIME,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

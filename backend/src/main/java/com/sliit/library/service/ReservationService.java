@@ -48,6 +48,10 @@ public class ReservationService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> LibraryException.notFound("User", userId.toString()));
 
+        if (user.getIsMember() == null || !user.getIsMember()) {
+            throw LibraryException.forbidden("Membership required to reserve books. Please apply for membership.");
+        }
+
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> LibraryException.notFound("Book", bookId.toString()));
 
@@ -72,7 +76,8 @@ public class ReservationService {
         }
 
         Integer queuePosition = reservationRepository.findMaxQueuePosition(bookId);
-        if (queuePosition == null) queuePosition = 0;
+        if (queuePosition == null)
+            queuePosition = 0;
         queuePosition++;
 
         Reservation reservation = Reservation.builder()
@@ -97,7 +102,8 @@ public class ReservationService {
             throw LibraryException.forbidden("You can only cancel your own reservations");
         }
 
-        if (reservation.getStatus() != ReservationStatus.PENDING && reservation.getStatus() != ReservationStatus.AVAILABLE) {
+        if (reservation.getStatus() != ReservationStatus.PENDING
+                && reservation.getStatus() != ReservationStatus.AVAILABLE) {
             throw LibraryException.validation("Reservation cannot be cancelled in status: " + reservation.getStatus());
         }
 

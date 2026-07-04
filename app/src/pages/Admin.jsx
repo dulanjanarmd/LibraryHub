@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { siteConfig } from "@/config";
 import { LayoutDashboard, BookOpen, Users, Repeat, BarChart3, Settings, LogOut, Clock, AlertTriangle, CheckCircle, Plus, Upload, Search, Ban, Edit3, ArrowUpDown } from "lucide-react";
@@ -463,12 +463,57 @@ function CirculationView() {
 /* Users Management */
 function UsersView() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [pendingApps, setPendingApps] = useState([]);
+  const [loadingPending, setLoadingPending] = useState(false);
+  const role = (localStorage.getItem('role') || '').toString().toUpperCase();
+
+  useEffect(() => {
+    const fetchPending = async () => {
+      if (!(role === 'LIBRARIAN' || role === 'ADMIN')) return;
+      setLoadingPending(true);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('http://localhost:8080/api/membership/pending', { headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.json();
+        if (res.ok && data.success) setPendingApps(data.data || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingPending(false);
+      }
+    };
+    fetchPending();
+  }, [role]);
 
   const filteredUsers = MOCK_USERS.filter(
     (u) =>
       u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const pendingData = (pendingApps || []).map((a) => {
+    return {
+      "User ID": a.userIdentifier || (a.user ? a.user.userId : ''),
+      Name: a.fullName,
+      Email: a.email,
+      Faculty: a.faculty || '-',
+      Submitted: new Date(a.submittedAt).toLocaleString(),
+      "": (
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={async () => {
+            const token = localStorage.getItem('token');
+            await fetch(`http://localhost:8080/api/membership/${a.id}/approve`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+            setPendingApps(pendingApps.filter(p => p.id !== a.id));
+          }} style={{ padding: '6px 10px', background: '#1d3205', color: '#fff', border: 'none' }}>Approve</button>
+          <button onClick={async () => {
+            const token = localStorage.getItem('token');
+            await fetch(`http://localhost:8080/api/membership/${a.id}/reject`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+            setPendingApps(pendingApps.filter(p => p.id !== a.id));
+          }} style={{ padding: '6px 10px', background: 'transparent', border: '1px solid #ff2600', color: '#ff2600' }}>Reject</button>
+        </div>
+      ),
+    };
+  });
 
   return (
     <div>
@@ -535,50 +580,42 @@ function UsersView() {
           ),
         }))}
       />
+
+      {/* Pending membership applications (librarian/admin) */}
+      {(role === 'LIBRARIAN' || role === 'ADMIN') && (
+        <div style={{ marginTop: '24px', marginBottom: '24px' }}>
+          <h3 style={{ marginBottom: '12px' }}>Pending Membership Applications</h3>
+          {loadingPending ? <div>Loading...</div> : (
+            <DataTable
+              columns={["User ID", "Name", "Email", "Faculty", "Submitted", ""]}
+              data={pendingData}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 /* Reports */
 function ReportsView() {
+  const reports = [
+    { title: "Active Loans Report", desc: "All currently borrowed books with due dates" },
+    { title: "Overdue Items Report", desc: "Books past their due date with fine calculations" },
+    { title: "Fine Collection Report", desc: "Monthly fine revenue and payment status" },
+    { title: "User Activity Report", desc: "Borrowing patterns by faculty and role" },
+    { title: "Inventory Report", desc: "Complete catalogue listing with availability" },
+    { title: "New Acquisitions Report", desc: "Books added in the last 30 days" },
+  ];
+
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "24px" }}>
-        {[
-          { title: "Active Loans Report", desc: "All currently borrowed books with due dates" },
-          { title: "Overdue Items Report", desc: "Books past their due date with fine calculations" },
-          { title: "Fine Collection Report", desc: "Monthly fine revenue and payment status" },
-          { title: "User Activity Report", desc: "Borrowing patterns by faculty and role" },
-          { title: "Inventory Report", desc: "Complete catalogue listing with availability" },
-          { title: "New Acquisitions Report", desc: "Books added in the last 30 days" },
-        ].map((report) => (
-          <div
-            key={report.title}
-            style={{
-              border: "1px solid #1d3205",
-              padding: "24px",
-              cursor: "pointer",
-              transition: "background 0.3s",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(29,50,5,0.03)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-          >
+        {reports.map((report) => (
+          <div key={report.title} style={{ border: "1px solid #1d3205", padding: "24px" }}>
             <h4 style={{ fontSize: "14px", fontWeight: 600, marginBottom: "6px" }}>{report.title}</h4>
             <p style={{ fontSize: "13px", opacity: 0.6, marginBottom: "16px" }}>{report.desc}</p>
-            <button
-              style={{
-                padding: "8px 16px",
-                fontSize: "11px",
-                fontWeight: 500,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                border: "1px solid #1d3205",
-                background: "transparent",
-                color: "#1d3205",
-                cursor: "pointer",
-                fontFamily: "'Inter', sans-serif",
-              }}
-            >
+            <button style={{ padding: "8px 16px", fontSize: "11px", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.08em", border: "1px solid #1d3205", background: "transparent", color: "#1d3205", cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
               Generate PDF
             </button>
           </div>

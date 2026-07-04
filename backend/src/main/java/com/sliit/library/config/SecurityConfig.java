@@ -38,36 +38,40 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authenticationProvider(authenticationProvider())
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            .authorizeHttpRequests(auth -> auth
-                // Public endpoints
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/books/**").permitAll()
-                .requestMatchers("/api/categories/**").permitAll()
-                .requestMatchers("/api/announcements/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/books/search/**").permitAll()
-                // Swagger/OpenAPI
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                // Admin endpoints
-                .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "LIBRARIAN")
-                .requestMatchers("/api/circulation/**").hasAnyRole("ADMIN", "LIBRARIAN")
-                .requestMatchers("/api/reports/**").hasAnyRole("ADMIN", "LIBRARIAN")
-                .requestMatchers("/api/users/**").hasAnyRole("ADMIN", "LIBRARIAN")
-                .requestMatchers("/api/system-config/**").hasRole("ADMIN")
-                // Authenticated endpoints
-                .requestMatchers("/api/loans/**").authenticated()
-                .requestMatchers("/api/reservations/**").authenticated()
-                .requestMatchers("/api/fines/**").authenticated()
-                .requestMatchers("/api/reading-lists/**").authenticated()
-                .requestMatchers("/api/notifications/**").authenticated()
-                .requestMatchers("/api/dashboard/**").authenticated()
-                // Default
-                .anyRequest().authenticated()
-            );
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authenticationProvider(authenticationProvider())
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .authorizeHttpRequests(auth -> auth
+                        // Public endpoints
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/books/**").permitAll()
+                        .requestMatchers("/api/categories/**").permitAll()
+                        .requestMatchers("/api/announcements/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/books/search/**").permitAll()
+                        // Swagger/OpenAPI
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                        // Admin endpoints
+                        .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "LIBRARIAN")
+                        .requestMatchers("/api/circulation/**").hasAnyRole("ADMIN", "LIBRARIAN")
+                        .requestMatchers("/api/reports/**").hasAnyRole("ADMIN", "LIBRARIAN")
+                        .requestMatchers("/api/users/**").hasAnyRole("ADMIN", "LIBRARIAN")
+                        .requestMatchers("/api/system-config/**").hasRole("ADMIN")
+                        // Membership endpoints: applying is allowed for authenticated users; management
+                        // is librarian/admin only
+                        .requestMatchers("/api/membership/apply").authenticated()
+                        .requestMatchers("/api/membership/pending").hasAnyRole("LIBRARIAN", "ADMIN")
+                        .requestMatchers("/api/membership/**").hasAnyRole("LIBRARIAN", "ADMIN")
+                        // Authenticated endpoints
+                        .requestMatchers("/api/loans/**").authenticated()
+                        .requestMatchers("/api/reservations/**").authenticated()
+                        .requestMatchers("/api/fines/**").authenticated()
+                        .requestMatchers("/api/reading-lists/**").authenticated()
+                        .requestMatchers("/api/notifications/**").authenticated()
+                        .requestMatchers("/api/dashboard/**").authenticated()
+                        // Default
+                        .anyRequest().authenticated());
 
         return http.build();
     }
