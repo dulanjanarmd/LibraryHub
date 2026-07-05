@@ -1,7 +1,7 @@
 package com.sliit.library.repository;
 
+import com.sliit.library.entity.Role;
 import com.sliit.library.entity.User;
-import com.sliit.library.entity.enums.UserRole;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,34 +15,27 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    Optional<User> findByUserId(String userId);
-
     Optional<User> findByEmail(String email);
 
-    boolean existsByUserId(String userId);
+    Optional<User> findByStudentStaffId(String studentStaffId);
 
-    boolean existsByEmail(String email);
+    Boolean existsByEmail(String email);
 
-    List<User> findByRole(UserRole role);
+    Boolean existsByStudentStaffId(String studentStaffId);
 
-    Page<User> findByRole(UserRole role, Pageable pageable);
+    List<User> findByRole(Role role);
 
-    @Query("SELECT u FROM User u WHERE u.isActive = true AND " +
-           "(LOWER(u.userId) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')))")
-    Page<User> searchUsers(@Param("query") String query, Pageable pageable);
+    List<User> findByIsActive(Boolean isActive);
 
-    @Query("SELECT COUNT(u) FROM User u WHERE u.role = 'UNDERGRADUATE'")
-    long countUndergraduates();
+    @Query("SELECT u FROM User u WHERE " +
+           "LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(u.studentStaffId) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    Page<User> searchUsers(@Param("keyword") String keyword, Pageable pageable);
 
-    @Query("SELECT COUNT(u) FROM User u WHERE u.role = 'POSTGRADUATE'")
-    long countPostgraduates();
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role")
+    Long countByRole(@Param("role") Role role);
 
-    @Query("SELECT COUNT(u) FROM User u WHERE u.role = 'FACULTY'")
-    long countFaculty();
-
-    @Query("SELECT COUNT(u) FROM User u WHERE u.isActive = true")
-    long countActiveUsers();
+    @Query("SELECT u FROM User u WHERE u.outstandingFine > 0")
+    List<User> findUsersWithOutstandingFines();
 }

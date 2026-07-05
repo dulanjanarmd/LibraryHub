@@ -1,13 +1,14 @@
 package com.sliit.library.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,96 +16,114 @@ import java.util.List;
 @Entity
 @Table(name = "books")
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Book {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 20)
-    private String isbn;
-
-    @Column(nullable = false, length = 255)
+    @NotBlank
+    @Size(max = 200)
     private String title;
 
-    @Column(nullable = false, length = 255)
+    @NotBlank
+    @Size(max = 200)
     private String author;
 
-    @Column(length = 100)
+    @Size(max = 500)
+    private String additionalAuthors;
+
+    @NotBlank
+    @Size(max = 20)
+    @Column(unique = true)
+    private String isbn;
+
+    @Size(max = 20)
+    private String isbn13;
+
+    @Size(max = 200)
     private String publisher;
 
-    @Column(name = "publication_year")
     private Integer publicationYear;
 
-    @Column(length = 20)
-    private String edition;
-
-    @Column(columnDefinition = "TEXT")
+    @Size(max = 2000)
     private String description;
 
-    @Column(name = "ddc_number", length = 20)
-    private String ddcNumber;
+    @Size(max = 50)
+    private String edition;
 
-    @Column(nullable = false, length = 20)
+    @Size(max = 20)
     private String language;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private BookFormat format;
+    @Size(max = 50)
+    private String format;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
-    private Category category;
-
-    @Column(name = "cover_image_url", length = 500)
-    private String coverImageUrl;
-
-    @Column(name = "resource_url", length = 500)
-    private String resourceUrl;
-
-    @Column(name = "page_count")
-    private Integer pageCount;
-
-    @Column(name = "total_copies", nullable = false)
-    private Integer totalCopies;
-
-    @Column(name = "available_copies", nullable = false)
-    private Integer availableCopies;
-
-    @Column(name = "shelf_location", length = 20)
+    @Size(max = 100)
     private String shelfLocation;
 
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive;
+    @Size(max = 500)
+    private String coverImageUrl;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @Builder.Default
+    private Integer totalCopies = 1;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    @Builder.Default
+    private Integer availableCopies = 1;
+
+    @Builder.Default
+    private Integer reservedCopies = 0;
+
+    @Builder.Default
+    private Double replacementCost = 0.0;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    @Builder.Default
+    private BookStatus status = BookStatus.AVAILABLE;
+
+    @Size(max = 50)
+    private String ddcNumber;
+
+    @Size(max = 500)
+    private String subjectHeadings;
+
+    @Size(max = 20)
+    private String accessionNumber;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
 
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<BookCopy> copies = new ArrayList<>();
+    @Builder.Default
+    private List<BorrowRecord> borrowRecords = new ArrayList<>();
+
+    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Reservation> reservations = new ArrayList<>();
+
+    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<EBook> eBooks = new ArrayList<>();
+
+    private LocalDate acquisitionDate;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    @Builder.Default
+    private Integer borrowCount = 0;
 
     @PrePersist
-    public void prePersist() {
-        if (this.language == null) this.language = "English";
-        if (this.format == null) this.format = BookFormat.PHYSICAL;
-        if (this.totalCopies == null) this.totalCopies = 1;
-        if (this.availableCopies == null) this.availableCopies = this.totalCopies;
-        if (this.isActive == null) this.isActive = true;
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
     }
 
-    public enum BookFormat {
-        PHYSICAL,
-        EBOOK,
-        JOURNAL,
-        THESIS,
-        MULTIMEDIA
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }

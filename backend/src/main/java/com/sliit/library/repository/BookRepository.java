@@ -1,6 +1,7 @@
 package com.sliit.library.repository;
 
 import com.sliit.library.entity.Book;
+import com.sliit.library.entity.BookStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,39 +17,43 @@ public interface BookRepository extends JpaRepository<Book, Long> {
 
     Optional<Book> findByIsbn(String isbn);
 
-    boolean existsByIsbn(String isbn);
+    Boolean existsByIsbn(String isbn);
+
+    List<Book> findByStatus(BookStatus status);
 
     List<Book> findByCategoryId(Long categoryId);
 
-    Page<Book> findByCategoryId(Long categoryId, Pageable pageable);
+    @Query("SELECT b FROM Book b WHERE " +
+           "LOWER(b.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(b.author) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(b.isbn) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(b.publisher) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(b.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(b.subjectHeadings) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    Page<Book> searchBooks(@Param("keyword") String keyword, Pageable pageable);
 
-    List<Book> findByIsActiveTrue();
+    @Query("SELECT b FROM Book b WHERE " +
+           "(:title IS NULL OR LOWER(b.title) LIKE LOWER(CONCAT('%', :title, '%'))) AND " +
+           "(:author IS NULL OR LOWER(b.author) LIKE LOWER(CONCAT('%', :author, '%'))) AND " +
+           "(:isbn IS NULL OR b.isbn = :isbn) AND " +
+           "(:categoryId IS NULL OR b.category.id = :categoryId) AND " +
+           "(:status IS NULL OR b.status = :status) AND " +
+           "(:year IS NULL OR b.publicationYear = :year)")
+    Page<Book> advancedSearch(
+            @Param("title") String title,
+            @Param("author") String author,
+            @Param("isbn") String isbn,
+            @Param("categoryId") Long categoryId,
+            @Param("status") BookStatus status,
+            @Param("year") Integer year,
+            Pageable pageable);
 
-    Page<Book> findByIsActiveTrue(Pageable pageable);
+    @Query("SELECT b FROM Book b ORDER BY b.borrowCount DESC")
+    List<Book> findMostPopularBooks(Pageable pageable);
 
-    @Query("SELECT b FROM Book b WHERE b.isActive = true AND " +
-           "(LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(b.author) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "b.isbn LIKE CONCAT('%', :query, '%') OR " +
-           "LOWER(b.publisher) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(b.ddcNumber) LIKE LOWER(CONCAT('%', :query, '%')))")
-    Page<Book> searchBooks(@Param("query") String query, Pageable pageable);
+    @Query("SELECT b FROM Book b WHERE b.availableCopies = 0")
+    List<Book> findUnavailableBooks();
 
-    @Query("SELECT b FROM Book b WHERE b.isActive = true AND " +
-           "b.availableCopies > 0 AND " +
-           "(LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(b.author) LIKE LOWER(CONCAT('%', :query, '%')))")
-    Page<Book> searchAvailableBooks(@Param("query") String query, Pageable pageable);
-
-    @Query("SELECT b FROM Book b WHERE b.isActive = true AND b.format = :format")
-    Page<Book> findByFormat(@Param("format") Book.BookFormat format, Pageable pageable);
-
-    @Query("SELECT COUNT(b) FROM Book b WHERE b.isActive = true")
-    long countActiveBooks();
-
-    @Query("SELECT COUNT(b) FROM Book b WHERE b.availableCopies = 0 AND b.isActive = true")
-    long countUnavailableBooks();
-
-    @Query("SELECT b FROM Book b WHERE b.isActive = true ORDER BY b.createdAt DESC")
-    List<Book> findRecentAdditions(Pageable pageable);
+    @Query("SELECT COUNT(b) FROM Book b WHERE b.status = :status")
+    Long countByStatus(@Param("status") BookStatus status);
 }

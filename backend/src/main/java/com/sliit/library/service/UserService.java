@@ -1,151 +1,157 @@
 package com.sliit.library.service;
 
-import com.sliit.library.dto.UserDTO;
+import com.sliit.library.dto.*;
+import com.sliit.library.entity.Role;
 import com.sliit.library.entity.User;
-import com.sliit.library.entity.enums.UserRole;
-import com.sliit.library.exception.LibraryException;
-import com.sliit.library.repository.FineRepository;
-import com.sliit.library.repository.LoanRepository;
 import com.sliit.library.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import com.sliit.library.security.UserDetailsImpl;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class UserService {
 
-    private final UserRepository userRepository;
-    private final LoanRepository loanRepository;
-    private final FineRepository fineRepository;
-    private final AuthService authService;
+    @Autowired
+    private UserRepository userRepository;
 
-    @Transactional(readOnly = true)
-    public UserDTO getUserById(Long id) {
+    @Autowired
+    private PasswordEncoder encoder;
+
+    public UserProfileResponse getCurrentUserProfile() {
+        User user = getCurrentAuthenticatedUser();
+        return mapToProfileResponse(user);
+    }
+
+    public UserProfileResponse getUserProfile(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> LibraryException.notFound("User", id.toString()));
-        return mapToDTO(user);
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return mapToProfileResponse(user);
     }
 
-    @Transactional(readOnly = true)
-    public UserDTO getUserByUserId(String userId) {
-        User user = userRepository.findByUserId(userId)
-                .orElseThrow(() -> LibraryException.notFound("User", userId));
-        return mapToDTO(user);
-    }
+    public UserProfileResponse updateProfile(UpdateProfileRequest request) {
+        User user = getCurrentAuthenticatedUser();
 
-    @Transactional(readOnly = true)
-    public List<UserDTO> getAllUsers(int page, int size, String query) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<User> users;
-        if (query != null && !query.isBlank()) {
-            users = userRepository.searchUsers(query, pageable);
-        } else {
-            users = userRepository.findAll(pageable);
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber());
         }
-        return users.getContent().stream().map(this::mapToDTO).collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<UserDTO> getUsersByRole(UserRole role) {
-        return userRepository.findByRole(role).stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional
-    public UserDTO createUser(UserDTO dto) {
-        if (userRepository.existsByUserId(dto.getUserId())) {
-            throw LibraryException.conflict("User ID already exists: " + dto.getUserId());
+        if (request.getFaculty() != null) {
+            user.setFaculty(request.getFaculty());
         }
-        if (userRepository.existsByEmail(dto.getEmail())) {
-            throw LibraryException.conflict("Email already registered: " + dto.getEmail());
+        if (request.getProgramme() != null) {
+            user.setProgramme(request.getProgramme());
+        }
+        if (request.getProfileImageUrl() != null) {
+            user.setProfileImageUrl(request.getProfileImageUrl());
         }
 
-        User user = User.builder()
-                .userId(dto.getUserId())
-                .email(dto.getEmail())
-                .passwordHash(authService.encodePassword(dto.getPassword()))
-                .firstName(dto.getFirstName())
-                .lastName(dto.getLastName())
-                .phone(dto.getPhone())
-                .role(dto.getRole())
-                .faculty(dto.getFaculty())
-                .programme(dto.getProgramme())
-                .isActive(true)
-                .emailVerified(false)
-                .build();
-
-        User saved = userRepository.save(user);
-        log.info("User created: {} ({})", saved.getUserId(), saved.getRole());
-        return mapToDTO(saved);
-    }
-
-    @Transactional
-    public UserDTO updateUser(Long id, UserDTO dto) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> LibraryException.notFound("User", id.toString()));
-
-        if (dto.getFirstName() != null) user.setFirstName(dto.getFirstName());
-        if (dto.getLastName() != null) user.setLastName(dto.getLastName());
-        if (dto.getPhone() != null) user.setPhone(dto.getPhone());
-        if (dto.getFaculty() != null) user.setFaculty(dto.getFaculty());
-        if (dto.getProgramme() != null) user.setProgramme(dto.getProgramme());
-        if (dto.getMaxLoans() != null) user.setMaxLoans(dto.getMaxLoans());
-        if (dto.getLoanPeriodDays() != null) user.setLoanPeriodDays(dto.getLoanPeriodDays());
-        if (dto.getIsActive() != null) user.setIsActive(dto.getIsActive());
-
-        User updated = userRepository.save(user);
-        return mapToDTO(updated);
-    }
-
-    @Transactional
-    public void toggleUserStatus(Long id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> LibraryException.notFound("User", id.toString()));
-        user.setIsActive(!Boolean.TRUE.equals(user.getIsActive()));
         userRepository.save(user);
-        log.info("User {} status toggled to {}", id, user.getIsActive());
+        return mapToProfileResponse(user);
     }
 
-    @Transactional(readOnly = true)
-    public UserDTO getCurrentUserProfile() {
-        User user = authService.getCurrentUser();
-        return mapToDTO(user);
+    public Page<UserProfileResponse> getAllUsers(String keyword, Pageable pageable) {
+        if (keyword != null && !keyword.isEmpty()) {
+            return userRepository.searchUsers(keyword, pageable).map(this::mapToProfileResponse);
+        }
+        return userRepository.findAll(pageable).map(this::mapToProfileResponse);
     }
 
-    private UserDTO mapToDTO(User user) {
-        long activeLoans = loanRepository.countActiveLoansByUser(user.getId());
-        BigDecimal totalFines = fineRepository.getTotalUnpaidFinesByUser(user.getId());
+    public List<UserProfileResponse> getUsersByRole(Role role) {
+        return userRepository.findByRole(role).stream()
+                .map(this::mapToProfileResponse)
+                .toList();
+    }
 
-        return UserDTO.builder()
+    public MessageResponse deactivateUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setIsActive(false);
+        userRepository.save(user);
+        return new MessageResponse("User deactivated successfully");
+    }
+
+    public MessageResponse activateUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setIsActive(true);
+        userRepository.save(user);
+        return new MessageResponse("User activated successfully");
+    }
+
+    public MessageResponse changeUserRole(Long id, Role role) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setRole(role);
+        userRepository.save(user);
+        return new MessageResponse("User role updated to " + role.name());
+    }
+
+    public MessageResponse updatePassword(String oldPassword, String newPassword) {
+        User user = getCurrentAuthenticatedUser();
+
+        if (!encoder.matches(oldPassword, user.getPassword())) {
+            return MessageResponse.builder()
+                    .message("Error: Old password is incorrect")
+                    .success(false)
+                    .build();
+        }
+
+        user.setPassword(encoder.encode(newPassword));
+        userRepository.save(user);
+        return new MessageResponse("Password updated successfully");
+    }
+
+    private User getCurrentAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        return userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    private UserProfileResponse mapToProfileResponse(User user) {
+        int maxBooks = getMaxBooksForRole(user.getRole());
+        int maxDays = getMaxDaysForRole(user.getRole());
+
+        return UserProfileResponse.builder()
                 .id(user.getId())
-                .userId(user.getUserId())
+                .fullName(user.getFullName())
+                .studentStaffId(user.getStudentStaffId())
                 .email(user.getEmail())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .phone(user.getPhone())
+                .phoneNumber(user.getPhoneNumber())
                 .role(user.getRole())
                 .faculty(user.getFaculty())
                 .programme(user.getProgramme())
-                .maxLoans(user.getMaxLoans())
-                .loanPeriodDays(user.getLoanPeriodDays())
+                .profileImageUrl(user.getProfileImageUrl())
                 .isActive(user.getIsActive())
-                .emailVerified(user.getEmailVerified())
-                .lastLogin(user.getLastLogin())
+                .currentBorrowCount(user.getCurrentBorrowCount())
+                .outstandingFine(user.getOutstandingFine())
                 .createdAt(user.getCreatedAt())
-                .activeLoans((int) activeLoans)
-                .totalFines(totalFines != null ? totalFines.intValue() : 0)
+                .maxBooksAllowed(maxBooks)
+                .maxDaysAllowed(maxDays)
                 .build();
+    }
+
+    private int getMaxBooksForRole(Role role) {
+        return switch (role) {
+            case STUDENT -> 4;
+            case FACULTY -> 10;
+            case LIBRARIAN -> 15;
+            case ADMIN -> 20;
+        };
+    }
+
+    private int getMaxDaysForRole(Role role) {
+        return switch (role) {
+            case STUDENT -> 14;
+            case FACULTY -> 30;
+            case LIBRARIAN -> 30;
+            case ADMIN -> 30;
+        };
     }
 }

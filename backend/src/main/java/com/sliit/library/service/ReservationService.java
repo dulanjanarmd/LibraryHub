@@ -1,148 +1,159 @@
 package com.sliit.library.service;
 
-import com.sliit.library.dto.ReservationDTO;
-import com.sliit.library.entity.Book;
-import com.sliit.library.entity.Reservation;
-import com.sliit.library.entity.User;
-import com.sliit.library.entity.enums.ReservationStatus;
-import com.sliit.library.exception.LibraryException;
-import com.sliit.library.repository.BookRepository;
-import com.sliit.library.repository.ReservationRepository;
-import com.sliit.library.repository.SystemConfigRepository;
-import com.sliit.library.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import com.sliit.library.dto.*;
+import com.sliit.library.entity.*;
+import com.sliit.library.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class ReservationService {
 
-    private final ReservationRepository reservationRepository;
-    private final UserRepository userRepository;
-    private final BookRepository bookRepository;
-    private final SystemConfigRepository configRepository;
+    @Autowired
+    private ReservationRepository reservationRepository;
 
-    @Transactional(readOnly = true)
-    public List<ReservationDTO> getUserReservations(Long userId) {
-        return reservationRepository.findByUserId(userId).stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
-    }
+    @Autowired
+    private BookRepository bookRepository;
 
-    @Transactional(readOnly = true)
-    public List<ReservationDTO> getUserPendingReservations(Long userId) {
-        return reservationRepository.findByUserIdAndStatus(userId, ReservationStatus.PENDING).stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
-    }
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Transactional
-    public ReservationDTO createReservation(Long userId, Long bookId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> LibraryException.notFound("User", userId.toString()));
+    public ReservationResponse createReservation(ReservationRequest request) {
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Book book = bookRepository.findById(request.getBookId())
+                .orElseThrow(() -> new RuntimeException("Book not found"));
 
-        if (user.getIsMember() == null || !user.getIsMember()) {
-            throw LibraryException.forbidden("Membership required to reserve books. Please apply for membership.");
+        long pendingReservations = reservationRepository.countPendingByUser(user.getId());
+        if (pendingReservations >= 3) {
+            throw new RuntimeException("Maximum 3 simultaneous reservations allowed");
         }
 
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> LibraryException.notFound("Book", bookId.toString()));
-
-        // Check max reservations per user
-        int maxReservations = Integer.parseInt(configRepository.findByConfigKey("reservation.max_per_user")
-                .map(c -> c.getConfigValue()).orElse("3"));
-        long currentReservations = reservationRepository.countPendingByUser(userId);
-        if (currentReservations >= maxReservations) {
-            throw LibraryException.validation("Maximum " + maxReservations + " simultaneous reservations allowed");
+        boolean alreadyBorrowed = book.getBorrowRecords().stream()
+                .anyMatch(br -> br.getUser().getId().equals(user.getId()) &&
+                        (br.getStatus() == BorrowStatus.ACTIVE || br.getStatus() == BorrowStatus.RENEWED));
+        if (alreadyBorrowed) {
+            throw new RuntimeException("You already have this book borrowed");
         }
 
-        // Check if book has available copies
-        if (book.getAvailableCopies() > 0) {
-            throw LibraryException.validation("Book has available copies. Please borrow directly.");
-        }
-
-        // Check if user already reserved this book
-        boolean alreadyReserved = reservationRepository.findByUserId(userId).stream()
-                .anyMatch(r -> r.getBook().getId().equals(bookId) && r.getStatus() == ReservationStatus.PENDING);
+        boolean alreadyReserved = reservationRepository.findByUserIdAndStatus(user.getId(), ReservationStatus.PENDING)
+                .stream().anyMatch(r -> r.getBook().getId().equals(book.getId()));
         if (alreadyReserved) {
-            throw LibraryException.conflict("You have already reserved this book");
+            throw new RuntimeException("You already have a pending reservation for this book");
         }
 
-        Integer queuePosition = reservationRepository.findMaxQueuePosition(bookId);
-        if (queuePosition == null)
-            queuePosition = 0;
-        queuePosition++;
+        Integer maxPosition = reservationRepository.findMaxQueuePosition(book.getId());
+        int newPosition = (maxPosition != null ? maxPosition : 0) + 1;
 
         Reservation reservation = Reservation.builder()
                 .user(user)
                 .book(book)
-                .queuePosition(queuePosition)
                 .status(ReservationStatus.PENDING)
+                .queuePosition(newPosition)
                 .build();
 
-        Reservation saved = reservationRepository.save(reservation);
-        log.info("Reservation created: {} for book {} (Queue position: {})",
-                saved.getId(), book.getTitle(), queuePosition);
-        return mapToDTO(saved);
+        reservationRepository.save(reservation);
+
+        book.setReservedCopies(book.getReservedCopies() + 1);
+        bookRepository.save(book);
+
+        return mapToReservationResponse(reservation);
     }
 
     @Transactional
-    public ReservationDTO cancelReservation(Long reservationId, Long userId, String reason) {
+    public ReservationResponse cancelReservation(Long reservationId, Long userId) {
         Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> LibraryException.notFound("Reservation", reservationId.toString()));
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
 
         if (!reservation.getUser().getId().equals(userId)) {
-            throw LibraryException.forbidden("You can only cancel your own reservations");
-        }
-
-        if (reservation.getStatus() != ReservationStatus.PENDING
-                && reservation.getStatus() != ReservationStatus.AVAILABLE) {
-            throw LibraryException.validation("Reservation cannot be cancelled in status: " + reservation.getStatus());
+            throw new RuntimeException("You can only cancel your own reservations");
         }
 
         reservation.setStatus(ReservationStatus.CANCELLED);
-        reservation.setCancelledDate(LocalDateTime.now());
-        reservation.setCancelReason(reason);
+        reservationRepository.save(reservation);
 
-        // Reorder queue positions
-        List<Reservation> queue = reservationRepository.findByBookIdAndStatusOrderByQueuePositionAsc(
-                reservation.getBook().getId(), ReservationStatus.PENDING);
-        int removedPosition = reservation.getQueuePosition();
-        for (Reservation r : queue) {
-            if (r.getQueuePosition() > removedPosition) {
-                r.setQueuePosition(r.getQueuePosition() - 1);
-                reservationRepository.save(r);
-            }
+        Book book = reservation.getBook();
+        book.setReservedCopies(Math.max(0, book.getReservedCopies() - 1));
+        bookRepository.save(book);
+
+        List<Reservation> pendingList = reservationRepository.findPendingByBookOrderByDate(book.getId());
+        for (int i = 0; i < pendingList.size(); i++) {
+            pendingList.get(i).setQueuePosition(i + 1);
+            reservationRepository.save(pendingList.get(i));
         }
 
-        Reservation saved = reservationRepository.save(reservation);
-        log.info("Reservation {} cancelled by user {}", reservationId, userId);
-        return mapToDTO(saved);
+        return mapToReservationResponse(reservation);
     }
 
-    private ReservationDTO mapToDTO(Reservation r) {
-        return ReservationDTO.builder()
-                .id(r.getId())
-                .userId(r.getUser() != null ? r.getUser().getId() : null)
-                .userName(r.getUser() != null ? r.getUser().getFullName() : null)
-                .bookId(r.getBook() != null ? r.getBook().getId() : null)
-                .bookTitle(r.getBook() != null ? r.getBook().getTitle() : null)
-                .bookAuthor(r.getBook() != null ? r.getBook().getAuthor() : null)
-                .queuePosition(r.getQueuePosition())
-                .status(r.getStatus())
-                .requestDate(r.getRequestDate())
-                .availableDate(r.getAvailableDate())
-                .expiryDate(r.getExpiryDate())
-                .cancelReason(r.getCancelReason())
-                .notified(r.getNotified())
-                .createdAt(r.getCreatedAt())
+    @Transactional(readOnly = true)
+    public List<ReservationResponse> getUserReservations(Long userId) {
+        return reservationRepository.findByUserId(userId).stream()
+                .map(this::mapToReservationResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReservationResponse> getBookReservations(Long bookId) {
+        return reservationRepository.findByBookId(bookId).stream()
+                .map(this::mapToReservationResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReservationResponse> getPendingReservations() {
+        return reservationRepository.findByStatus(ReservationStatus.PENDING).stream()
+                .map(this::mapToReservationResponse)
+                .toList();
+    }
+
+    @Transactional
+    public void processReturnedBookNotifications(Long bookId) {
+        List<Reservation> pendingList = reservationRepository.findPendingByBookOrderByDate(bookId);
+        if (!pendingList.isEmpty()) {
+            Reservation firstInQueue = pendingList.get(0);
+            firstInQueue.setStatus(ReservationStatus.NOTIFIED);
+            firstInQueue.setNotificationDate(LocalDateTime.now());
+            firstInQueue.setExpiryDate(LocalDateTime.now().plusHours(48));
+            reservationRepository.save(firstInQueue);
+
+            Book book = firstInQueue.getBook();
+            book.setStatus(BookStatus.RESERVED);
+            bookRepository.save(book);
+
+            notificationService.sendNotification(
+                    firstInQueue.getUser(),
+                    NotificationType.RESERVATION_READY,
+                    "Book Available: " + book.getTitle(),
+                    "The book \"" + book.getTitle() + "\" you reserved is now available. " +
+                            "Please collect it within 48 hours. Your queue position is #1."
+            );
+        }
+    }
+
+    private ReservationResponse mapToReservationResponse(Reservation reservation) {
+        return ReservationResponse.builder()
+                .id(reservation.getId())
+                .userId(reservation.getUser().getId())
+                .userName(reservation.getUser().getFullName())
+                .studentStaffId(reservation.getUser().getStudentStaffId())
+                .bookId(reservation.getBook().getId())
+                .bookTitle(reservation.getBook().getTitle())
+                .bookAuthor(reservation.getBook().getAuthor())
+                .isbn(reservation.getBook().getIsbn())
+                .status(reservation.getStatus())
+                .queuePosition(reservation.getQueuePosition())
+                .reservationDate(reservation.getReservationDate())
+                .notificationDate(reservation.getNotificationDate())
+                .expiryDate(reservation.getExpiryDate())
+                .fulfilledDate(reservation.getFulfilledDate())
                 .build();
     }
 }

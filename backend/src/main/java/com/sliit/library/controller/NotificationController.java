@@ -1,0 +1,51 @@
+package com.sliit.library.controller;
+
+import com.sliit.library.dto.NotificationResponse;
+import com.sliit.library.service.NotificationService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@CrossOrigin(origins = "*", maxAge = 3600)
+@RestController
+@RequestMapping("/api")
+public class NotificationController {
+
+    @Autowired
+    private NotificationService notificationService;
+
+    @GetMapping("/notifications/user/{userId}")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('FACULTY') or hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<List<NotificationResponse>> getUserNotifications(@PathVariable Long userId) {
+        return ResponseEntity.ok(notificationService.getUserNotifications(userId));
+    }
+
+    @GetMapping("/notifications/user/{userId}/unread")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('FACULTY') or hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<List<NotificationResponse>> getUnreadNotifications(@PathVariable Long userId) {
+        return ResponseEntity.ok(notificationService.getUnreadNotifications(userId));
+    }
+
+    @GetMapping("/notifications/user/{userId}/unread-count")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('FACULTY') or hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<Long> getUnreadCount(@PathVariable Long userId) {
+        return ResponseEntity.ok(notificationService.getUnreadCount(userId));
+    }
+
+    @PutMapping("/notifications/{id}/read")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('FACULTY') or hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<?> markAsRead(@PathVariable Long id) {
+        notificationService.markAsRead(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/notifications/user/{userId}/read-all")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('FACULTY') or hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<?> markAllAsRead(@PathVariable Long userId) {
+        notificationService.markAllAsRead(userId);
+        return ResponseEntity.ok().build();
+    }
+}

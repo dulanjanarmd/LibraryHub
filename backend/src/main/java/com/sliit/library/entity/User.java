@@ -1,117 +1,97 @@
 package com.sliit.library.entity;
 
-import com.sliit.library.entity.enums.UserRole;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false, unique = true, length = 20)
-    private String userId;
+    @NotBlank
+    @Size(max = 100)
+    private String fullName;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @NotBlank
+    @Size(max = 50)
+    @Column(unique = true)
+    private String studentStaffId;
+
+    @NotBlank
+    @Email
+    @Size(max = 100)
+    @Column(unique = true)
     private String email;
 
-    @Column(name = "password_hash", nullable = false, length = 255)
-    private String passwordHash;
+    @NotBlank
+    @Size(max = 15)
+    private String phoneNumber;
 
-    @Column(name = "first_name", nullable = false, length = 50)
-    private String firstName;
-
-    @Column(name = "last_name", nullable = false, length = 50)
-    private String lastName;
-
-    @Column(length = 15)
-    private String phone;
+    @NotBlank
+    @Size(max = 120)
+    private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private UserRole role;
+    @Column(length = 20)
+    private Role role;
 
-    @Column(length = 50)
     private String faculty;
-
-    @Column(length = 100)
     private String programme;
+    private String profileImageUrl;
 
-    @Column(name = "max_loans", nullable = false)
-    private Integer maxLoans;
+    @Builder.Default
+    private Boolean isActive = true;
 
-    @Column(name = "loan_period_days", nullable = false)
-    private Integer loanPeriodDays;
+    @Builder.Default
+    private Integer currentBorrowCount = 0;
 
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive;
+    @Builder.Default
+    private Double outstandingFine = 0.0;
 
-    @Column(name = "is_mfa_enabled", nullable = false)
-    private Boolean isMfaEnabled;
-
-    @Column(name = "mfa_secret", length = 255)
-    private String mfaSecret;
-
-    @Column(name = "email_verified", nullable = false)
-    private Boolean emailVerified;
-
-    @Column(name = "is_member", nullable = false)
-    private Boolean isMember;
-
-    @Column(name = "membership_id", unique = true, length = 50)
-    private String membershipId;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "membership_status", nullable = false)
-    private com.sliit.library.entity.enums.MembershipStatus membershipStatus;
-
-    @Column(name = "last_login")
-    private LocalDateTime lastLogin;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @Transient
-    public String getFullName() {
-        return firstName + " " + lastName;
-    }
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<BorrowRecord> borrowRecords = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Reservation> reservations = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Fine> fines = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Notification> notifications = new ArrayList<>();
 
     @PrePersist
-    public void prePersist() {
-        if (this.maxLoans == null) {
-            this.maxLoans = this.role != null ? this.role.getDefaultMaxLoans() : 4;
-        }
-        if (this.loanPeriodDays == null) {
-            this.loanPeriodDays = this.role != null ? this.role.getDefaultLoanPeriod() : 14;
-        }
-        if (this.isActive == null)
-            this.isActive = true;
-        if (this.isMfaEnabled == null)
-            this.isMfaEnabled = false;
-        if (this.emailVerified == null)
-            this.emailVerified = false;
-        if (this.isMember == null)
-            this.isMember = false;
-        if (this.membershipStatus == null)
-            this.membershipStatus = com.sliit.library.entity.enums.MembershipStatus.NONE;
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }

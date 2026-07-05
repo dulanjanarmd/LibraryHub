@@ -1,85 +1,80 @@
 package com.sliit.library.controller;
 
-import com.sliit.library.dto.ApiResponse;
-import com.sliit.library.dto.FineDTO;
-import com.sliit.library.entity.enums.PaymentMethod;
-import com.sliit.library.service.AuthService;
+import com.sliit.library.dto.*;
+import com.sliit.library.entity.User;
+import com.sliit.library.repository.UserRepository;
+import com.sliit.library.security.UserDetailsImpl;
 import com.sliit.library.service.FineService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
+@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
-@RequestMapping("/api/fines")
-@RequiredArgsConstructor
-@Tag(name = "Fines", description = "Fine management and payment endpoints")
-@SecurityRequirement(name = "bearerAuth")
+@RequestMapping("/api")
 public class FineController {
 
-    private final FineService fineService;
-    private final AuthService authService;
+    @Autowired
+    private FineService fineService;
 
-    @GetMapping("/my-fines")
-    @Operation(summary = "Get current user's fines")
-    public ResponseEntity<ApiResponse<List<FineDTO>>> getMyFines() {
-        Long userId = authService.getCurrentUser().getId();
-        return ResponseEntity.ok(ApiResponse.success(fineService.getUserFines(userId)));
+    @Autowired
+    private UserRepository userRepository;
+
+    @GetMapping("/fines/user/{userId}")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('FACULTY') or hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<List<FineResponse>> getUserFines(@PathVariable Long userId) {
+        return ResponseEntity.ok(fineService.getUserFines(userId));
     }
 
-    @GetMapping("/my-unpaid")
-    @Operation(summary = "Get current user's unpaid fines")
-    public ResponseEntity<ApiResponse<List<FineDTO>>> getMyUnpaidFines() {
-        Long userId = authService.getCurrentUser().getId();
-        return ResponseEntity.ok(ApiResponse.success(fineService.getUserUnpaidFines(userId)));
+    @GetMapping("/fines/user/{userId}/unpaid")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('FACULTY') or hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<List<FineResponse>> getUnpaidFines(@PathVariable Long userId) {
+        return ResponseEntity.ok(fineService.getUnpaidFines(userId));
     }
 
-    @GetMapping("/my-total")
-    @Operation(summary = "Get current user's total unpaid fines amount")
-    public ResponseEntity<ApiResponse<BigDecimal>> getMyTotalUnpaidFines() {
-        Long userId = authService.getCurrentUser().getId();
-        return ResponseEntity.ok(ApiResponse.success(fineService.getUserTotalUnpaidFines(userId)));
+    @PostMapping("/fines/pay")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('FACULTY') or hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<MessageResponse> payFine(@RequestBody PaymentRequest request) {
+        return ResponseEntity.ok(fineService.payFine(request));
     }
 
-    @PostMapping("/{fineId}/pay")
-    @Operation(summary = "Pay a fine")
-    public ResponseEntity<ApiResponse<FineDTO>> payFine(
-            @PathVariable Long fineId,
-            @RequestParam BigDecimal amount,
-            @RequestParam(defaultValue = "ONLINE") PaymentMethod method) {
-        return ResponseEntity.ok(ApiResponse.success(
-                fineService.payFine(fineId, amount, method), "Payment processed successfully"));
+    @GetMapping("/librarian/fines/all")
+    @PreAuthorize("hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<List<FineResponse>> getAllFines() {
+        return ResponseEntity.ok(fineService.getAllFines());
     }
 
-    // Admin endpoints
-    @GetMapping("/unpaid")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
-    @Operation(summary = "Get all unpaid fines (Admin/Librarian only)")
-    public ResponseEntity<ApiResponse<List<FineDTO>>> getAllUnpaidFines() {
-        return ResponseEntity.ok(ApiResponse.success(fineService.getAllUnpaidFines()));
+    @GetMapping("/librarian/fines/unpaid")
+    @PreAuthorize("hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<List<FineResponse>> getAllUnpaidFines() {
+        return ResponseEntity.ok(fineService.getAllUnpaidFines());
     }
 
-    @PostMapping("/{fineId}/waive")
+    @PostMapping("/admin/fines/{fineId}/waive")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Waive a fine (Admin only)")
-    public ResponseEntity<ApiResponse<FineDTO>> waiveFine(
+    public ResponseEntity<MessageResponse> waiveFine(
             @PathVariable Long fineId,
+            @RequestParam Double amount,
             @RequestParam String reason) {
-        Long adminId = authService.getCurrentUser().getId();
-        return ResponseEntity.ok(ApiResponse.success(
-                fineService.waiveFine(fineId, reason, adminId), "Fine waived successfully"));
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        User admin = userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
+        return ResponseEntity.ok(fineService.waiveFine(fineId, amount, reason, admin));
     }
 
-    @GetMapping("/revenue/monthly")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
-    @Operation(summary = "Get monthly fine revenue (Admin/Librarian only)")
-    public ResponseEntity<ApiResponse<BigDecimal>> getMonthlyRevenue() {
-        return ResponseEntity.ok(ApiResponse.success(fineService.getMonthlyRevenue()));
+    @GetMapping("/librarian/fines/stats")
+    @PreAuthorize("hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Double>> getFineStats() {
+        return ResponseEntity.ok(Map.of(
+                "totalOutstanding", fineService.getTotalOutstandingFines(),
+                "totalCollected", fineService.getTotalCollectedFines()
+        ));
     }
 }

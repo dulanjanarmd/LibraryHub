@@ -1,57 +1,51 @@
 package com.sliit.library.controller;
 
-import com.sliit.library.dto.ApiResponse;
-import com.sliit.library.dto.ReservationDTO;
-import com.sliit.library.service.AuthService;
+import com.sliit.library.dto.*;
 import com.sliit.library.service.ReservationService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
-@RequestMapping("/api/reservations")
-@RequiredArgsConstructor
-@Tag(name = "Reservations", description = "Book reservation management")
-@SecurityRequirement(name = "bearerAuth")
+@RequestMapping("/api")
 public class ReservationController {
 
-    private final ReservationService reservationService;
-    private final AuthService authService;
+    @Autowired
+    private ReservationService reservationService;
 
-    @GetMapping("/my-reservations")
-    @Operation(summary = "Get current user's reservations")
-    public ResponseEntity<ApiResponse<List<ReservationDTO>>> getMyReservations() {
-        Long userId = authService.getCurrentUser().getId();
-        return ResponseEntity.ok(ApiResponse.success(reservationService.getUserReservations(userId)));
+    @PostMapping("/reservations")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('FACULTY') or hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<ReservationResponse> createReservation(@RequestBody ReservationRequest request) {
+        return ResponseEntity.ok(reservationService.createReservation(request));
     }
 
-    @GetMapping("/my-pending")
-    @Operation(summary = "Get current user's pending reservations")
-    public ResponseEntity<ApiResponse<List<ReservationDTO>>> getMyPendingReservations() {
-        Long userId = authService.getCurrentUser().getId();
-        return ResponseEntity.ok(ApiResponse.success(reservationService.getUserPendingReservations(userId)));
-    }
-
-    @PostMapping("/book/{bookId}")
-    @Operation(summary = "Create a reservation for a book")
-    public ResponseEntity<ApiResponse<ReservationDTO>> createReservation(@PathVariable Long bookId) {
-        Long userId = authService.getCurrentUser().getId();
-        return ResponseEntity.ok(ApiResponse.success(
-                reservationService.createReservation(userId, bookId), "Reservation created successfully"));
-    }
-
-    @PostMapping("/{reservationId}/cancel")
-    @Operation(summary = "Cancel a reservation")
-    public ResponseEntity<ApiResponse<ReservationDTO>> cancelReservation(
+    @PostMapping("/reservations/{reservationId}/cancel")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('FACULTY') or hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<ReservationResponse> cancelReservation(
             @PathVariable Long reservationId,
-            @RequestParam(required = false) String reason) {
-        Long userId = authService.getCurrentUser().getId();
-        return ResponseEntity.ok(ApiResponse.success(
-                reservationService.cancelReservation(reservationId, userId, reason), "Reservation cancelled"));
+            @RequestParam Long userId) {
+        return ResponseEntity.ok(reservationService.cancelReservation(reservationId, userId));
+    }
+
+    @GetMapping("/reservations/user/{userId}")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('FACULTY') or hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<List<ReservationResponse>> getUserReservations(@PathVariable Long userId) {
+        return ResponseEntity.ok(reservationService.getUserReservations(userId));
+    }
+
+    @GetMapping("/reservations/book/{bookId}")
+    @PreAuthorize("hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<List<ReservationResponse>> getBookReservations(@PathVariable Long bookId) {
+        return ResponseEntity.ok(reservationService.getBookReservations(bookId));
+    }
+
+    @GetMapping("/librarian/reservations/pending")
+    @PreAuthorize("hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<List<ReservationResponse>> getPendingReservations() {
+        return ResponseEntity.ok(reservationService.getPendingReservations());
     }
 }

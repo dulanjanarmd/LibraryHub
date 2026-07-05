@@ -1,102 +1,87 @@
 package com.sliit.library.controller;
 
-import com.sliit.library.dto.ApiResponse;
-import com.sliit.library.dto.BookDTO;
-import com.sliit.library.dto.PagedResponse;
+import com.sliit.library.dto.*;
+import com.sliit.library.entity.BookStatus;
 import com.sliit.library.service.BookService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
-@RequestMapping("/api/books")
-@RequiredArgsConstructor
-@Tag(name = "Books", description = "Book catalogue management endpoints")
+@RequestMapping("/api")
 public class BookController {
 
-    private final BookService bookService;
+    @Autowired
+    private BookService bookService;
 
-    @GetMapping
-    @Operation(summary = "Get all books with pagination")
-    public ResponseEntity<ApiResponse<PagedResponse<BookDTO>>> getAllBooks(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "title") String sortBy,
-            @RequestParam(defaultValue = "ASC") String direction) {
-        return ResponseEntity.ok(ApiResponse.success(bookService.getAllBooks(page, size, sortBy, direction)));
+    @GetMapping("/books")
+    public ResponseEntity<Page<BookResponse>> getAllBooks(Pageable pageable) {
+        return ResponseEntity.ok(bookService.getAllBooks(pageable));
     }
 
-    @GetMapping("/{id}")
-    @Operation(summary = "Get book by ID")
-    public ResponseEntity<ApiResponse<BookDTO>> getBookById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success(bookService.getBookById(id)));
+    @GetMapping("/books/{id}")
+    public ResponseEntity<BookResponse> getBookById(@PathVariable Long id) {
+        return ResponseEntity.ok(bookService.getBook(id));
     }
 
-    @GetMapping("/isbn/{isbn}")
-    @Operation(summary = "Get book by ISBN")
-    public ResponseEntity<ApiResponse<BookDTO>> getBookByIsbn(@PathVariable String isbn) {
-        return ResponseEntity.ok(ApiResponse.success(bookService.getBookByIsbn(isbn)));
+    @GetMapping("/books/search")
+    public ResponseEntity<Page<BookResponse>> searchBooks(
+            @RequestParam String keyword,
+            Pageable pageable) {
+        return ResponseEntity.ok(bookService.searchBooks(keyword, pageable));
     }
 
-    @GetMapping("/search")
-    @Operation(summary = "Search books by title, author, or ISBN")
-    public ResponseEntity<ApiResponse<PagedResponse<BookDTO>>> searchBooks(
-            @RequestParam String query,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(ApiResponse.success(bookService.searchBooks(query, page, size)));
+    @GetMapping("/books/advanced-search")
+    public ResponseEntity<Page<BookResponse>> advancedSearch(
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String author,
+            @RequestParam(required = false) String isbn,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) BookStatus status,
+            @RequestParam(required = false) Integer year,
+            Pageable pageable) {
+        return ResponseEntity.ok(bookService.advancedSearch(title, author, isbn, categoryId, status, year, pageable));
     }
 
-    @GetMapping("/category/{categoryId}")
-    @Operation(summary = "Get books by category")
-    public ResponseEntity<ApiResponse<PagedResponse<BookDTO>>> getBooksByCategory(
-            @PathVariable Long categoryId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(ApiResponse.success(bookService.getBooksByCategory(categoryId, page, size)));
-    }
-
-    @GetMapping("/recent")
-    @Operation(summary = "Get recently added books")
-    public ResponseEntity<ApiResponse<List<BookDTO>>> getRecentBooks(
+    @GetMapping("/books/popular")
+    public ResponseEntity<List<BookResponse>> getPopularBooks(
             @RequestParam(defaultValue = "10") int limit) {
-        return ResponseEntity.ok(ApiResponse.success(bookService.getRecentAdditions(limit)));
+        return ResponseEntity.ok(bookService.getPopularBooks(limit));
     }
 
-    @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
-    @Operation(summary = "Create a new book (Admin/Librarian only)")
-    public ResponseEntity<ApiResponse<BookDTO>> createBook(@Valid @RequestBody BookDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.created(bookService.createBook(dto), "Book created successfully"));
+    @GetMapping("/books/category/{categoryId}")
+    public ResponseEntity<List<BookResponse>> getBooksByCategory(@PathVariable Long categoryId) {
+        return ResponseEntity.ok(bookService.getBooksByCategory(categoryId));
     }
 
-    @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
-    @Operation(summary = "Update a book (Admin/Librarian only)")
-    public ResponseEntity<ApiResponse<BookDTO>> updateBook(@PathVariable Long id, @Valid @RequestBody BookDTO dto) {
-        return ResponseEntity.ok(ApiResponse.success(bookService.updateBook(id, dto), "Book updated successfully"));
+    @GetMapping("/books/status/{status}")
+    @PreAuthorize("hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<List<BookResponse>> getBooksByStatus(@PathVariable BookStatus status) {
+        return ResponseEntity.ok(bookService.getBooksByStatus(status));
     }
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
-    @Operation(summary = "Deactivate a book (Admin/Librarian only)")
-    public ResponseEntity<ApiResponse<Void>> deleteBook(@PathVariable Long id) {
+    @PostMapping("/librarian/books")
+    @PreAuthorize("hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<BookResponse> addBook(@RequestBody BookRequestDTO request) {
+        return ResponseEntity.ok(bookService.addBook(request));
+    }
+
+    @PutMapping("/librarian/books/{id}")
+    @PreAuthorize("hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<BookResponse> updateBook(@PathVariable Long id, @RequestBody BookRequestDTO request) {
+        return ResponseEntity.ok(bookService.updateBook(id, request));
+    }
+
+    @DeleteMapping("/librarian/books/{id}")
+    @PreAuthorize("hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<MessageResponse> deleteBook(@PathVariable Long id) {
         bookService.deleteBook(id);
-        return ResponseEntity.ok(ApiResponse.success(null, "Book deactivated successfully"));
-    }
-
-    @GetMapping("/stats/total")
-    @Operation(summary = "Get total count of active books")
-    public ResponseEntity<ApiResponse<Long>> getTotalBooks() {
-        return ResponseEntity.ok(ApiResponse.success(bookService.countTotalBooks()));
+        return ResponseEntity.ok(new MessageResponse("Book deleted successfully"));
     }
 }

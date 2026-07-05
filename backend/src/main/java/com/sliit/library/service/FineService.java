@@ -1,132 +1,149 @@
 package com.sliit.library.service;
 
-import com.sliit.library.dto.FineDTO;
-import com.sliit.library.entity.Fine;
-import com.sliit.library.entity.User;
-import com.sliit.library.entity.enums.PaymentMethod;
-import com.sliit.library.exception.LibraryException;
-import com.sliit.library.repository.FineRepository;
-import com.sliit.library.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import com.sliit.library.dto.*;
+import com.sliit.library.entity.*;
+import com.sliit.library.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class FineService {
 
-    private final FineRepository fineRepository;
-    private final UserRepository userRepository;
+    @Autowired
+    private FineRepository fineRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Transactional(readOnly = true)
-    public List<FineDTO> getUserFines(Long userId) {
+    public List<FineResponse> getUserFines(Long userId) {
         return fineRepository.findByUserId(userId).stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+                .map(this::mapToFineResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<FineDTO> getUserUnpaidFines(Long userId) {
-        return fineRepository.findByUserIdAndIsPaidFalse(userId).stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+    public List<FineResponse> getUnpaidFines(Long userId) {
+        return fineRepository.findUnpaidByUser(userId).stream()
+                .map(this::mapToFineResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<FineDTO> getAllUnpaidFines() {
-        return fineRepository.findByIsPaidFalse().stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+    public List<FineResponse> getAllUnpaidFines() {
+        return fineRepository.findByStatus(FineStatus.UNPAID).stream()
+                .map(this::mapToFineResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
-    public BigDecimal getUserTotalUnpaidFines(Long userId) {
-        BigDecimal total = fineRepository.getTotalUnpaidFinesByUser(userId);
-        return total != null ? total : BigDecimal.ZERO;
+    public List<FineResponse> getAllFines() {
+        return fineRepository.findAll().stream()
+                .map(this::mapToFineResponse)
+                .toList();
     }
 
     @Transactional
-    public FineDTO payFine(Long fineId, BigDecimal amount, PaymentMethod method) {
-        Fine fine = fineRepository.findById(fineId)
-                .orElseThrow(() -> LibraryException.notFound("Fine", fineId.toString()));
+    public MessageResponse payFine(PaymentRequest request) {
+        Fine fine = fineRepository.findById(request.getFineId())
+                .orElseThrow(() -> new RuntimeException("Fine not found"));
 
-        if (Boolean.TRUE.equals(fine.getIsPaid())) {
-            throw LibraryException.validation("Fine is already paid");
+        double remaining = fine.getRemainingAmount();
+
+        if (request.getAmount() > remaining) {
+            return MessageResponse.builder()
+                    .message("Payment amount exceeds remaining fine amount")
+                    .success(false)
+                    .build();
         }
 
-        if (amount.compareTo(fine.getBalanceLkr()) > 0) {
-            amount = fine.getBalanceLkr(); // Cap at balance
+        fine.setPaidAmount(fine.getPaidAmount() + request.getAmount());
+
+        if (fine.getPaidAmount() >= fine.getAmount()) {
+            fine.setStatus(FineStatus.PAID);
+        } else if (fine.getPaidAmount() > 0) {
+            fine.setStatus(FineStatus.PARTIALLY_PAID);
         }
 
-        fine.setPaidAmountLkr(fine.getPaidAmountLkr().add(amount));
-        fine.setBalanceLkr(fine.getBalanceLkr().subtract(amount));
+        fineRepository.save(fine);
 
-        if (fine.getBalanceLkr().compareTo(BigDecimal.ZERO) <= 0) {
-            fine.setIsPaid(true);
-            fine.setBalanceLkr(BigDecimal.ZERO);
-        }
+        User user = fine.getUser();
+        Double totalOutstanding = fineRepository.getTotalOutstandingByUser(user.getId());
+        user.setOutstandingFine(totalOutstanding != null ? totalOutstanding : 0.0);
+        userRepository.save(user);
 
-        fine.setPaymentDate(LocalDateTime.now());
-        fine.setPaymentMethod(method);
-        fine.setReceiptNumber("RCP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        notificationService.sendNotification(
+                user,
+                NotificationType.FINE_PAID,
+                "Fine Payment Received",
+                "LKR " + request.getAmount() + " has been paid. Remaining balance: LKR " + fine.getRemainingAmount()
+        );
 
-        Fine saved = fineRepository.save(fine);
-        log.info("Fine {} payment processed: LKR {} via {}", fineId, amount, method);
-        return mapToDTO(saved);
+        return new MessageResponse("Payment successful. Remaining: LKR " + fine.getRemainingAmount());
     }
 
     @Transactional
-    public FineDTO waiveFine(Long fineId, String reason, Long waivedById) {
+    public MessageResponse waiveFine(Long fineId, Double amount, String reason, User waivedBy) {
         Fine fine = fineRepository.findById(fineId)
-                .orElseThrow(() -> LibraryException.notFound("Fine", fineId.toString()));
+                .orElseThrow(() -> new RuntimeException("Fine not found"));
 
-        User waivedBy = userRepository.findById(waivedById)
-                .orElseThrow(() -> LibraryException.notFound("Admin", waivedById.toString()));
+        double remaining = fine.getRemainingAmount();
+        if (amount > remaining) {
+            amount = remaining;
+        }
 
-        fine.setIsPaid(true);
+        fine.setWaivedAmount(fine.getWaivedAmount() + amount);
         fine.setWaiverReason(reason);
         fine.setWaivedBy(waivedBy);
-        fine.setWaivedAt(LocalDateTime.now());
-        fine.setBalanceLkr(BigDecimal.ZERO);
 
-        Fine saved = fineRepository.save(fine);
-        log.info("Fine {} waived by {}: {}", fineId, waivedBy.getUserId(), reason);
-        return mapToDTO(saved);
+        if (fine.getWaivedAmount() >= fine.getAmount()) {
+            fine.setStatus(FineStatus.WAIVED);
+        }
+
+        fineRepository.save(fine);
+
+        User user = fine.getUser();
+        Double totalOutstanding = fineRepository.getTotalOutstandingByUser(user.getId());
+        user.setOutstandingFine(totalOutstanding != null ? totalOutstanding : 0.0);
+        userRepository.save(user);
+
+        return new MessageResponse("Fine waived successfully. Waived amount: LKR " + amount);
     }
 
     @Transactional(readOnly = true)
-    public BigDecimal getMonthlyRevenue() {
-        BigDecimal revenue = fineRepository.getMonthlyFineRevenue();
-        return revenue != null ? revenue : BigDecimal.ZERO;
+    public double getTotalOutstandingFines() {
+        Double total = fineRepository.getTotalOutstanding();
+        return total != null ? total : 0.0;
     }
 
-    private FineDTO mapToDTO(Fine fine) {
-        return FineDTO.builder()
+    @Transactional(readOnly = true)
+    public double getTotalCollectedFines() {
+        Double total = fineRepository.getTotalCollected();
+        return total != null ? total : 0.0;
+    }
+
+    private FineResponse mapToFineResponse(Fine fine) {
+        return FineResponse.builder()
                 .id(fine.getId())
-                .loanId(fine.getLoan() != null ? fine.getLoan().getId() : null)
-                .userId(fine.getUser() != null ? fine.getUser().getId() : null)
-                .userName(fine.getUser() != null ? fine.getUser().getFullName() : null)
-                .amountLkr(fine.getAmountLkr())
-                .paidAmountLkr(fine.getPaidAmountLkr())
-                .balanceLkr(fine.getBalanceLkr())
-                .fineType(fine.getFineType())
-                .daysOverdue(fine.getDaysOverdue())
-                .ratePerDay(fine.getRatePerDay())
-                .isPaid(fine.getIsPaid())
-                .paymentDate(fine.getPaymentDate())
-                .paymentMethod(fine.getPaymentMethod())
-                .receiptNumber(fine.getReceiptNumber())
+                .userId(fine.getUser().getId())
+                .userName(fine.getUser().getFullName())
+                .bookId(fine.getBook() != null ? fine.getBook().getId() : null)
+                .bookTitle(fine.getBook() != null ? fine.getBook().getTitle() : "N/A")
+                .amount(fine.getAmount())
+                .paidAmount(fine.getPaidAmount())
+                .waivedAmount(fine.getWaivedAmount())
+                .remainingAmount(fine.getRemainingAmount())
+                .status(fine.getStatus())
+                .overdueDays(fine.getOverdueDays())
+                .fineDate(fine.getFineDate())
+                .description(fine.getDescription())
                 .waiverReason(fine.getWaiverReason())
-                .waivedByName(fine.getWaivedBy() != null ? fine.getWaivedBy().getFullName() : null)
-                .waivedAt(fine.getWaivedAt())
                 .createdAt(fine.getCreatedAt())
                 .build();
     }

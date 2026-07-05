@@ -1,46 +1,90 @@
 package com.sliit.library.service;
 
-import com.sliit.library.entity.Notification;
-import com.sliit.library.entity.Reservation;
-import com.sliit.library.repository.NotificationRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import com.sliit.library.dto.NotificationResponse;
+import com.sliit.library.entity.*;
+import com.sliit.library.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class NotificationService {
 
-    private final NotificationRepository notificationRepository;
+    @Autowired
+    private NotificationRepository notificationRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Transactional
-    public void sendReservationAvailableNotification(Reservation reservation) {
-        String subject = "Your reserved book is now available";
-        String message = String.format("Dear %s,\n\nThe book '%s' you reserved is now available for pickup. Please collect it before %s.\n\nThank you,\nSLIIT Library",
-                reservation.getUser().getFirstName(),
-                reservation.getBook().getTitle(),
-                reservation.getExpiryDate());
+    public void sendNotification(User user, NotificationType type, String title, String message) {
+        sendNotification(user, type, title, message, null, null);
+    }
 
+    @Transactional
+    public void sendNotification(User user, NotificationType type, String title, String message,
+                                  String relatedEntityType, Long relatedEntityId) {
         Notification notification = Notification.builder()
-                .user(reservation.getUser())
-                .type(Notification.NotificationType.RESERVATION_AVAILABLE)
-                .channel(Notification.NotificationChannel.EMAIL)
-                .subject(subject)
+                .user(user)
+                .type(type)
+                .title(title)
                 .message(message)
                 .isRead(false)
-                .sentAt(LocalDateTime.now())
-                .deliveryStatus(Notification.DeliveryStatus.SENT) // Mocking as sent
-                .retryCount(0)
-                .relatedBook(reservation.getBook())
+                .relatedEntityType(relatedEntityType)
+                .relatedEntityId(relatedEntityId)
                 .build();
 
         notificationRepository.save(notification);
-        
-        log.info("📧 MOCK EMAIL SENT to {}: {}", reservation.getUser().getEmail(), subject);
-        log.info("Message body: {}", message);
+    }
+
+    @Transactional(readOnly = true)
+    public List<NotificationResponse> getUserNotifications(Long userId) {
+        return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+                .map(this::mapToNotificationResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<NotificationResponse> getUnreadNotifications(Long userId) {
+        return notificationRepository.findByUserIdAndIsReadFalse(userId).stream()
+                .map(this::mapToNotificationResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public long getUnreadCount(Long userId) {
+        return notificationRepository.countByUserIdAndIsReadFalse(userId);
+    }
+
+    @Transactional
+    public void markAsRead(Long notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new RuntimeException("Notification not found"));
+        notification.setIsRead(true);
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void markAllAsRead(Long userId) {
+        List<Notification> unread = notificationRepository.findByUserIdAndIsReadFalse(userId);
+        for (Notification n : unread) {
+            n.setIsRead(true);
+        }
+        notificationRepository.saveAll(unread);
+    }
+
+    private NotificationResponse mapToNotificationResponse(Notification notification) {
+        return NotificationResponse.builder()
+                .id(notification.getId())
+                .type(notification.getType())
+                .title(notification.getTitle())
+                .message(notification.getMessage())
+                .isRead(notification.getIsRead())
+                .relatedEntityType(notification.getRelatedEntityType())
+                .relatedEntityId(notification.getRelatedEntityId())
+                .sentAt(notification.getSentAt())
+                .build();
     }
 }

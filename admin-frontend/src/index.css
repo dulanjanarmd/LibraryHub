@@ -1,0 +1,155 @@
+:root {
+  --admin-dark: #1a1a2e;
+  --admin-blue: #16213e;
+  --admin-accent: #0f3460;
+  --admin-highlight: #e94560;
+  --sliit-blue: #003366;
+}
+
+body {
+  background-color: #f0f2f5;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.admin-sidebar {
+  width: 260px;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #003366 0%, #0f3460 100%);
+  color: white;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-sidebar .sidebar-brand {
+  padding: 24px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.admin-sidebar .nav-link {
+  color: rgba(255,255,255,0.75);
+  padding: 12px 20px;
+  border-radius: 0;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-sidebar .nav-link:hover,
+.admin-sidebar .nav-link.active {
+  background: rgba(255,255,255,0.15);
+  color: white;
+  border-left: 3px solid #e94560;
+}
+
+.admin-sidebar .nav-link i {
+  width: 20px;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.admin-main {
+  margin-left: 260px;
+  min-height: 100vh;
+}
+
+.admin-topbar {
+  background: white;
+  padding: 12px 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.admin-content {
+  padding: 24px;
+}
+
+.card {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+
+.stat-card { border-left: 4px solid #e94560; }
+.stat-card.primary { border-left-color: #0d6efd; }
+.stat-card.success { border-left-color: #198754; }
+.stat-card.warning { border-left-color: #ffc107; }
+.stat-card.danger  { border-left-color: #dc3545; }
+.stat-card.info    { border-left-color: #0dcaf0; }
+
+.btn-primary {
+  background-color: var(--sliit-blue);
+  border-color: var(--sliit-blue);
+}
+.btn-primary:hover {
+  background-color: #002244;
+  border-color: #002244;
+}
+
+.table thead th {
+  background-color: var(--sliit-blue);
+  color: white;
+  font-weight: 600;
+  border: none;
+}
+
+.table tbody tr:hover {
+  background-color: rgba(0,51,102,0.04);
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--sliit-blue);
+  box-shadow: 0 0 0 0.2rem rgba(0,51,102,0.15);
+}
+
+.login-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #003366 0%, #0f3460 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  padding: 40px;
+  width: 100%;
+  max-width: 440px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fadeIn 0.3s ease-out; }
+
+.chart-container { position: relative; height: 300px; }
+
+.spinner-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+@media (max-width: 768px) {
+  .admin-sidebar { display: none; }
+  .admin-main { margin-left: 0; }
+}

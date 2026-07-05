@@ -1,15 +1,10 @@
 package com.sliit.library.service;
 
-import com.sliit.library.dto.BookDTO;
-import com.sliit.library.dto.PagedResponse;
-import com.sliit.library.entity.Book;
-import com.sliit.library.entity.Category;
-import com.sliit.library.exception.LibraryException;
-import com.sliit.library.repository.BookRepository;
-import com.sliit.library.repository.BookCopyRepository;
-import com.sliit.library.repository.CategoryRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import com.sliit.library.dto.*;
+import com.sliit.library.entity.*;
+import com.sliit.library.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,179 +13,194 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class BookService {
 
-    private final BookRepository bookRepository;
-    private final BookCopyRepository bookCopyRepository;
-    private final CategoryRepository categoryRepository;
+    @Autowired
+    private BookRepository bookRepository;
 
-    @Transactional(readOnly = true)
-    public PagedResponse<BookDTO> getAllBooks(int page, int size, String sortBy, String direction) {
-        Sort sort = Sort.by(Sort.Direction.fromString(direction), sortBy);
-        Pageable pageable = PageRequest.of(page, size, sort);
-        Page<Book> books = bookRepository.findByIsActiveTrue(pageable);
-        return mapToPagedResponse(books);
-    }
+    @Autowired
+    private CategoryRepository categoryRepository;
 
-    @Transactional(readOnly = true)
-    public BookDTO getBookById(Long id) {
-        Book book = bookRepository.findById(id)
-                .orElseThrow(() -> LibraryException.notFound("Book", id.toString()));
-        return mapToDTO(book);
-    }
+    @Autowired
+    private BorrowRecordRepository borrowRecordRepository;
 
-    @Transactional(readOnly = true)
-    public BookDTO getBookByIsbn(String isbn) {
-        Book book = bookRepository.findByIsbn(isbn)
-                .orElseThrow(() -> LibraryException.notFound("Book", isbn));
-        return mapToDTO(book);
-    }
+    @Autowired
+    private ReservationRepository reservationRepository;
 
-    @Transactional(readOnly = true)
-    public PagedResponse<BookDTO> searchBooks(String query, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("title").ascending());
-        Page<Book> books = bookRepository.searchBooks(query, pageable);
-        return mapToPagedResponse(books);
-    }
+    @Value("${library.loan.undergraduate.max-books:4}")
+    private int undergradMaxBooks;
 
-    @Transactional(readOnly = true)
-    public PagedResponse<BookDTO> getBooksByCategory(Long categoryId, int page, int size) {
-        if (!categoryRepository.existsById(categoryId)) {
-            throw LibraryException.notFound("Category", categoryId.toString());
-        }
-        Pageable pageable = PageRequest.of(page, size, Sort.by("title").ascending());
-        Page<Book> books = bookRepository.findByCategoryId(categoryId, pageable);
-        return mapToPagedResponse(books);
-    }
+    @Value("${library.loan.postgraduate.max-books:6}")
+    private int postgradMaxBooks;
+
+    @Value("${library.loan.faculty.max-books:10}")
+    private int facultyMaxBooks;
 
     @Transactional
-    public BookDTO createBook(BookDTO dto) {
-        if (bookRepository.existsByIsbn(dto.getIsbn())) {
-            throw LibraryException.conflict("Book with ISBN " + dto.getIsbn() + " already exists");
+    public BookResponse addBook(BookRequestDTO request) {
+        Category category = null;
+        if (request.getCategoryId() != null) {
+            category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category not found"));
         }
-
-        Category category = categoryRepository.findById(dto.getCategoryId())
-                .orElseThrow(() -> LibraryException.notFound("Category", dto.getCategoryId().toString()));
 
         Book book = Book.builder()
-                .isbn(dto.getIsbn())
-                .title(dto.getTitle())
-                .author(dto.getAuthor())
-                .publisher(dto.getPublisher())
-                .publicationYear(dto.getPublicationYear())
-                .edition(dto.getEdition())
-                .description(dto.getDescription())
-                .ddcNumber(dto.getDdcNumber())
-                .language(dto.getLanguage())
-                .format(dto.getFormat())
+                .title(request.getTitle())
+                .author(request.getAuthor())
+                .additionalAuthors(request.getAdditionalAuthors())
+                .isbn(request.getIsbn())
+                .isbn13(request.getIsbn13())
+                .publisher(request.getPublisher())
+                .publicationYear(request.getPublicationYear())
+                .description(request.getDescription())
+                .edition(request.getEdition())
+                .language(request.getLanguage())
+                .format(request.getFormat())
+                .shelfLocation(request.getShelfLocation())
+                .coverImageUrl(request.getCoverImageUrl())
+                .totalCopies(request.getTotalCopies() != null ? request.getTotalCopies() : 1)
+                .availableCopies(request.getTotalCopies() != null ? request.getTotalCopies() : 1)
+                .replacementCost(request.getReplacementCost())
+                .status(request.getStatus() != null ? request.getStatus() : BookStatus.AVAILABLE)
+                .ddcNumber(request.getDdcNumber())
+                .subjectHeadings(request.getSubjectHeadings())
+                .accessionNumber(request.getAccessionNumber())
                 .category(category)
-                .coverImageUrl(dto.getCoverImageUrl())
-                .resourceUrl(dto.getResourceUrl())
-                .pageCount(dto.getPageCount())
-                .totalCopies(dto.getTotalCopies() != null ? dto.getTotalCopies() : 1)
-                .availableCopies(dto.getTotalCopies() != null ? dto.getTotalCopies() : 1)
-                .shelfLocation(dto.getShelfLocation())
-                .isActive(true)
+                .acquisitionDate(request.getAcquisitionDate())
                 .build();
 
-        Book saved = bookRepository.save(book);
-        log.info("Book created: {} (ISBN: {})", saved.getTitle(), saved.getIsbn());
-        return mapToDTO(saved);
+        bookRepository.save(book);
+        return mapToBookResponse(book);
     }
 
     @Transactional
-    public BookDTO updateBook(Long id, BookDTO dto) {
+    public BookResponse updateBook(Long id, BookRequestDTO request) {
         Book book = bookRepository.findById(id)
-                .orElseThrow(() -> LibraryException.notFound("Book", id.toString()));
+                .orElseThrow(() -> new RuntimeException("Book not found"));
 
-        if (dto.getIsbn() != null) book.setIsbn(dto.getIsbn());
-        if (dto.getTitle() != null) book.setTitle(dto.getTitle());
-        if (dto.getAuthor() != null) book.setAuthor(dto.getAuthor());
-        if (dto.getPublisher() != null) book.setPublisher(dto.getPublisher());
-        if (dto.getPublicationYear() != null) book.setPublicationYear(dto.getPublicationYear());
-        if (dto.getDescription() != null) book.setDescription(dto.getDescription());
-        if (dto.getDdcNumber() != null) book.setDdcNumber(dto.getDdcNumber());
-        if (dto.getCoverImageUrl() != null) book.setCoverImageUrl(dto.getCoverImageUrl());
-        if (dto.getResourceUrl() != null) book.setResourceUrl(dto.getResourceUrl());
-        if (dto.getShelfLocation() != null) book.setShelfLocation(dto.getShelfLocation());
-
-        if (dto.getCategoryId() != null) {
-            Category category = categoryRepository.findById(dto.getCategoryId())
-                    .orElseThrow(() -> LibraryException.notFound("Category", dto.getCategoryId().toString()));
+        if (request.getTitle() != null) book.setTitle(request.getTitle());
+        if (request.getAuthor() != null) book.setAuthor(request.getAuthor());
+        if (request.getAdditionalAuthors() != null) book.setAdditionalAuthors(request.getAdditionalAuthors());
+        if (request.getIsbn() != null) book.setIsbn(request.getIsbn());
+        if (request.getIsbn13() != null) book.setIsbn13(request.getIsbn13());
+        if (request.getPublisher() != null) book.setPublisher(request.getPublisher());
+        if (request.getPublicationYear() != null) book.setPublicationYear(request.getPublicationYear());
+        if (request.getDescription() != null) book.setDescription(request.getDescription());
+        if (request.getEdition() != null) book.setEdition(request.getEdition());
+        if (request.getLanguage() != null) book.setLanguage(request.getLanguage());
+        if (request.getFormat() != null) book.setFormat(request.getFormat());
+        if (request.getShelfLocation() != null) book.setShelfLocation(request.getShelfLocation());
+        if (request.getCoverImageUrl() != null) book.setCoverImageUrl(request.getCoverImageUrl());
+        if (request.getTotalCopies() != null) {
+            int diff = request.getTotalCopies() - book.getTotalCopies();
+            book.setTotalCopies(request.getTotalCopies());
+            book.setAvailableCopies(Math.max(0, book.getAvailableCopies() + diff));
+        }
+        if (request.getReplacementCost() != null) book.setReplacementCost(request.getReplacementCost());
+        if (request.getStatus() != null) book.setStatus(request.getStatus());
+        if (request.getDdcNumber() != null) book.setDdcNumber(request.getDdcNumber());
+        if (request.getSubjectHeadings() != null) book.setSubjectHeadings(request.getSubjectHeadings());
+        if (request.getAccessionNumber() != null) book.setAccessionNumber(request.getAccessionNumber());
+        if (request.getCategoryId() != null) {
+            Category category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category not found"));
             book.setCategory(category);
         }
 
-        Book updated = bookRepository.save(book);
-        log.info("Book updated: {} (ID: {})", updated.getTitle(), updated.getId());
-        return mapToDTO(updated);
+        bookRepository.save(book);
+        return mapToBookResponse(book);
+    }
+
+    @Transactional(readOnly = true)
+    public BookResponse getBook(Long id) {
+        Book book = bookRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Book not found"));
+        return mapToBookResponse(book);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<BookResponse> getAllBooks(Pageable pageable) {
+        return bookRepository.findAll(pageable).map(this::mapToBookResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<BookResponse> searchBooks(String keyword, Pageable pageable) {
+        return bookRepository.searchBooks(keyword, pageable).map(this::mapToBookResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<BookResponse> advancedSearch(String title, String author, String isbn,
+                                              Long categoryId, BookStatus status, Integer year, Pageable pageable) {
+        return bookRepository.advancedSearch(title, author, isbn, categoryId, status, year, pageable)
+                .map(this::mapToBookResponse);
     }
 
     @Transactional
     public void deleteBook(Long id) {
         Book book = bookRepository.findById(id)
-                .orElseThrow(() -> LibraryException.notFound("Book", id.toString()));
-        book.setIsActive(false);
+                .orElseThrow(() -> new RuntimeException("Book not found"));
+        book.setStatus(BookStatus.WITHDRAWN);
         bookRepository.save(book);
-        log.info("Book deactivated: {} (ID: {})", book.getTitle(), id);
     }
 
     @Transactional(readOnly = true)
-    public long countTotalBooks() {
-        return bookRepository.countActiveBooks();
+    public List<BookResponse> getPopularBooks(int limit) {
+        Pageable pageable = PageRequest.of(0, limit, Sort.by("borrowCount").descending());
+        return bookRepository.findMostPopularBooks(pageable).stream()
+                .map(this::mapToBookResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<BookDTO> getRecentAdditions(int limit) {
-        Pageable pageable = PageRequest.of(0, limit, Sort.by("createdAt").descending());
-        return bookRepository.findRecentAdditions(pageable).stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+    public List<BookResponse> getBooksByCategory(Long categoryId) {
+        return bookRepository.findByCategoryId(categoryId).stream()
+                .map(this::mapToBookResponse)
+                .toList();
     }
 
-    private PagedResponse<BookDTO> mapToPagedResponse(Page<Book> page) {
-        List<BookDTO> content = page.getContent().stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
-
-        return PagedResponse.<BookDTO>builder()
-                .content(content)
-                .pageNumber(page.getNumber())
-                .pageSize(page.getSize())
-                .totalElements(page.getTotalElements())
-                .totalPages(page.getTotalPages())
-                .last(page.isLast())
-                .first(page.isFirst())
-                .build();
+    @Transactional(readOnly = true)
+    public List<BookResponse> getBooksByStatus(BookStatus status) {
+        return bookRepository.findByStatus(status).stream()
+                .map(this::mapToBookResponse)
+                .toList();
     }
 
-    public BookDTO mapToDTO(Book book) {
-        return BookDTO.builder()
+    @Transactional(readOnly = true)
+    public long getTotalBookCount() {
+        return bookRepository.count();
+    }
+
+    private BookResponse mapToBookResponse(Book book) {
+        return BookResponse.builder()
                 .id(book.getId())
-                .isbn(book.getIsbn())
                 .title(book.getTitle())
                 .author(book.getAuthor())
+                .additionalAuthors(book.getAdditionalAuthors())
+                .isbn(book.getIsbn())
+                .isbn13(book.getIsbn13())
                 .publisher(book.getPublisher())
                 .publicationYear(book.getPublicationYear())
-                .edition(book.getEdition())
                 .description(book.getDescription())
-                .ddcNumber(book.getDdcNumber())
+                .edition(book.getEdition())
                 .language(book.getLanguage())
                 .format(book.getFormat())
-                .categoryId(book.getCategory() != null ? book.getCategory().getId() : null)
-                .categoryName(book.getCategory() != null ? book.getCategory().getName() : null)
+                .shelfLocation(book.getShelfLocation())
                 .coverImageUrl(book.getCoverImageUrl())
-                .resourceUrl(book.getResourceUrl())
-                .pageCount(book.getPageCount())
                 .totalCopies(book.getTotalCopies())
                 .availableCopies(book.getAvailableCopies())
-                .shelfLocation(book.getShelfLocation())
-                .isActive(book.getIsActive())
+                .reservedCopies(book.getReservedCopies())
+                .replacementCost(book.getReplacementCost())
+                .status(book.getStatus())
+                .ddcNumber(book.getDdcNumber())
+                .subjectHeadings(book.getSubjectHeadings())
+                .accessionNumber(book.getAccessionNumber())
+                .categoryName(book.getCategory() != null ? book.getCategory().getName() : null)
+                .categoryId(book.getCategory() != null ? book.getCategory().getId() : null)
+                .acquisitionDate(book.getAcquisitionDate())
                 .createdAt(book.getCreatedAt())
+                .borrowCount(book.getBorrowCount())
                 .build();
     }
 }
