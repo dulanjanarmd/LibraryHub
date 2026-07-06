@@ -91,6 +91,7 @@ com\sliit\library\entity\BookRequest.class
 com\sliit\library\LibraryManagementSystemApplication.class
 com\sliit\library\security\UserDetailsServiceImpl.class
 com\sliit\library\repository\BorrowRecordRepository.class
+com\sliit\library\config\DataInitializer.class
 com\sliit\library\dto\ReservationResponse$ReservationResponseBuilder.class
 com\sliit\library\dto\EBookResponse.class
 com\sliit\library\service\UserService.class
