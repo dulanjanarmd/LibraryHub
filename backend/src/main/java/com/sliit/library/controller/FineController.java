@@ -57,7 +57,7 @@ public class FineController {
     }
 
     @PostMapping("/admin/fines/{fineId}/waive")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('LIBRARIAN')")
     public ResponseEntity<MessageResponse> waiveFine(
             @PathVariable Long fineId,
             @RequestParam Double amount,
@@ -65,7 +65,7 @@ public class FineController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         User admin = userRepository.findById(userDetails.getId())
-                .orElseThrow(() -> new RuntimeException("Admin not found"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(fineService.waiveFine(fineId, amount, reason, admin));
     }
 

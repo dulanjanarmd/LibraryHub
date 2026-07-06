@@ -48,4 +48,10 @@ public class ReservationController {
     public ResponseEntity<List<ReservationResponse>> getPendingReservations() {
         return ResponseEntity.ok(reservationService.getPendingReservations());
     }
+
+    @PutMapping("/librarian/reservations/{id}/fulfill")
+    @PreAuthorize("hasRole('LIBRARIAN') or hasRole('ADMIN')")
+    public ResponseEntity<ReservationResponse> fulfillReservation(@PathVariable Long id) {
+        return ResponseEntity.ok(reservationService.fulfillReservation(id));
+    }
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { reportAPI, borrowAPI, reservationAPI } from '../services/api';
-import { Container, Row, Col, Card, Table, Badge, Spinner, Button } from 'react-bootstrap';
+import { reportAPI, borrowAPI, reservationAPI, membershipAPI } from '../services/api';
+import { Container, Row, Col, Card, Table, Badge, Spinner, Button, Alert } from 'react-bootstrap';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -33,6 +33,8 @@ const Dashboard = () => {
   const [overdueLoans, setOverdueLoans] = useState([]);
   const [todayLoans, setTodayLoans] = useState([]);
   const [pendingReservations, setPendingReservations] = useState([]);
+  const [pendingMemberships, setPendingMemberships] = useState([]);
+  const [membershipMsg, setMembershipMsg] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,18 +43,20 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [statsRes, overdueRes, todayLoansRes, todayReturnsRes, pendingRes] = await Promise.all([
+      const [statsRes, overdueRes, todayLoansRes, todayReturnsRes, pendingRes, membershipsRes] = await Promise.all([
         reportAPI.getDashboardStats(),
         borrowAPI.getOverdue(),
         borrowAPI.getTodayLoans(),
         borrowAPI.getTodayReturns(),
         reservationAPI.getPending(),
+        membershipAPI.getPending(),
       ]);
 
       setStats(statsRes.data);
       setOverdueLoans(overdueRes.data);
       setTodayLoans(todayLoansRes.data);
       setPendingReservations(pendingRes.data);
+      setPendingMemberships(membershipsRes.data);
     } catch (err) {
       console.error('Failed to fetch dashboard data');
     } finally {
@@ -101,6 +105,34 @@ const Dashboard = () => {
       <h2 className="fw-bold mb-4">
         <i className="bi bi-speedometer2 me-2"></i>Librarian Dashboard
       </h2>
+
+      {/* Quick Actions */}
+      <Row className="g-3 mb-4">
+        <Col>
+          <Card>
+            <Card.Body className="d-flex gap-3 flex-wrap">
+              <Button as={Link} to="/librarian/issue" variant="primary">
+                <i className="bi bi-book me-2"></i>Issue Book
+              </Button>
+              <Button as={Link} to="/librarian/return" variant="success">
+                <i className="bi bi-arrow-return-left me-2"></i>Return Book
+              </Button>
+              <Button as={Link} to="/librarian/inventory" variant="outline-primary">
+                <i className="bi bi-collection me-2"></i>Inventory
+              </Button>
+              <Button as={Link} to="/librarian/reservations" variant="outline-warning">
+                <i className="bi bi-bookmark-check me-2"></i>Reservations
+              </Button>
+              <Button as={Link} to="/librarian/fines" variant="outline-danger">
+                <i className="bi bi-cash-coin me-2"></i>Fines
+              </Button>
+              <Button as={Link} to="/librarian/reports" variant="outline-secondary">
+                <i className="bi bi-bar-chart-line me-2"></i>Reports
+              </Button>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
 
       {/* Stats Cards */}
       <Row className="g-3 mb-4">
@@ -342,6 +374,85 @@ const Dashboard = () => {
                           <td>{res.bookTitle}</td>
                           <td>#{res.queuePosition}</td>
                           <td>{new Date(res.reservationDate).toLocaleDateString()}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </Table>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Pending Membership Applications */}
+      <Row className="mt-4">
+        <Col>
+          <Card>
+            <Card.Header className="d-flex justify-content-between align-items-center">
+              <span className="fw-semibold text-info">
+                <i className="bi bi-person-badge me-2"></i>Pending Membership Applications
+              </span>
+              <Badge bg="info">{pendingMemberships.length}</Badge>
+            </Card.Header>
+            <Card.Body className="p-0">
+              {membershipMsg && <Alert variant="success" className="m-3 py-2">{membershipMsg}</Alert>}
+              <div style={{ maxHeight: '300px', overflow: 'auto' }}>
+                <Table striped hover className="mb-0">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>ID</th>
+                      <th>Faculty</th>
+                      <th>Programme</th>
+                      <th>Applied</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingMemberships.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="text-center text-muted py-3">No pending applications</td>
+                      </tr>
+                    ) : (
+                      pendingMemberships.map((m) => (
+                        <tr key={m.id}>
+                          <td className="fw-semibold">{m.userFullName}</td>
+                          <td>{m.userStudentStaffId}</td>
+                          <td>{m.faculty}</td>
+                          <td>{m.programme}</td>
+                          <td>{m.appliedAt ? new Date(m.appliedAt).toLocaleDateString() : '-'}</td>
+                          <td>
+                            <div className="d-flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="success"
+                                onClick={async () => {
+                                  try {
+                                    await membershipAPI.review(m.id, { approved: true, adminComments: '' });
+                                    setMembershipMsg(`Membership approved for ${m.userFullName}`);
+                                    setPendingMemberships(prev => prev.filter(x => x.id !== m.id));
+                                  } catch { setMembershipMsg('Action failed'); }
+                                }}
+                              >
+                                <i className="bi bi-check-lg"></i> Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                onClick={async () => {
+                                  const reason = window.prompt('Rejection reason (optional):') || '';
+                                  try {
+                                    await membershipAPI.review(m.id, { approved: false, adminComments: reason });
+                                    setMembershipMsg(`Membership rejected for ${m.userFullName}`);
+                                    setPendingMemberships(prev => prev.filter(x => x.id !== m.id));
+                                  } catch { setMembershipMsg('Action failed'); }
+                                }}
+                              >
+                                <i className="bi bi-x-lg"></i> Reject
+                              </Button>
+                            </div>
+                          </td>
                         </tr>
                       ))
                     )}

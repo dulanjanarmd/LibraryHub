@@ -25,6 +25,8 @@ public class UserDetailsImpl implements UserDetails {
     @JsonIgnore
     private String password;
 
+    private boolean active;
+
     private Collection<? extends GrantedAuthority> authorities;
 
     public static UserDetailsImpl build(User user) {
@@ -36,6 +38,7 @@ public class UserDetailsImpl implements UserDetails {
                 user.getStudentStaffId(),
                 user.getEmail(),
                 user.getPassword(),
+                Boolean.TRUE.equals(user.getIsActive()),
                 Collections.singletonList(authority)
         );
     }
@@ -62,6 +65,6 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return active;
     }
 }

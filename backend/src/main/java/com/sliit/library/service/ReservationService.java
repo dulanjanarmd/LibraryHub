@@ -138,6 +138,21 @@ public class ReservationService {
         }
     }
 
+    @Transactional
+    public ReservationResponse fulfillReservation(Long reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+        reservation.setStatus(ReservationStatus.FULFILLED);
+        reservation.setFulfilledDate(LocalDateTime.now());
+        reservationRepository.save(reservation);
+
+        Book book = reservation.getBook();
+        book.setReservedCopies(Math.max(0, book.getReservedCopies() - 1));
+        bookRepository.save(book);
+
+        return mapToReservationResponse(reservation);
+    }
+
     private ReservationResponse mapToReservationResponse(Reservation reservation) {
         return ReservationResponse.builder()
                 .id(reservation.getId())

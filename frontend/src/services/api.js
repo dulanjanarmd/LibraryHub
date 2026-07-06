@@ -33,8 +33,10 @@ api.interceptors.response.use(
 );
 
 export const authAPI = {
-  login: (email, password) => api.post('/auth/login', { email, password }),
+  login: (identifier, password) => api.post('/auth/login', { identifier, password }),
   register: (data) => api.post('/auth/register', data),
+  forgotPassword: (identifier) => api.post('/auth/forgot-password', null, { params: { identifier } }),
+  resetPassword: (token, newPassword) => api.post('/auth/reset-password', null, { params: { token, newPassword } }),
 };
 
 export const userAPI = {
@@ -42,6 +44,8 @@ export const userAPI = {
   updateProfile: (data) => api.put('/user/profile', data),
   changePassword: (oldPassword, newPassword) =>
     api.post('/user/change-password', null, { params: { oldPassword, newPassword } }),
+  searchUsers: (keyword) => api.get('/admin/users', { params: { keyword, size: 10 } }),
+  getUserById: (id) => api.get(`/user/${id}`),
 };
 
 export const bookAPI = {
@@ -93,6 +97,8 @@ export const fineAPI = {
   getAll: () => api.get('/librarian/fines/all'),
   getAllUnpaid: () => api.get('/librarian/fines/unpaid'),
   getStats: () => api.get('/librarian/fines/stats'),
+  waive: (fineId, amount, reason) =>
+    api.post(`/admin/fines/${fineId}/waive`, null, { params: { amount, reason } }),
 };
 
 export const notificationAPI = {
@@ -117,6 +123,14 @@ export const ebookAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
   delete: (id) => api.delete(`/librarian/ebooks/${id}`),
+};
+
+export const membershipAPI = {
+  apply: (data) => api.post('/membership/apply', data),
+  getMy: () => api.get('/membership/my'),
+  getPending: () => api.get('/librarian/memberships/pending'),
+  getAll: () => api.get('/librarian/memberships/all'),
+  review: (id, data) => api.post(`/librarian/memberships/${id}/review`, data),
 };
 
 export default api;

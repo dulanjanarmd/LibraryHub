@@ -1,13 +1,17 @@
 package com.sliit.library.dto;
 
 import com.sliit.library.entity.Role;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserProfileResponse {
 
     private Long id;
@@ -25,4 +29,6 @@ public class UserProfileResponse {
     private LocalDateTime createdAt;
     private Integer maxBooksAllowed;
     private Integer maxDaysAllowed;
+    private Boolean isMember;
+    private String membershipId;
 }

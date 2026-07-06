@@ -1,8 +1,11 @@
 package com.sliit.library.service;
 
 import com.sliit.library.dto.*;
+import com.sliit.library.entity.Membership;
+import com.sliit.library.entity.MembershipStatus;
 import com.sliit.library.entity.Role;
 import com.sliit.library.entity.User;
+import com.sliit.library.repository.MembershipRepository;
 import com.sliit.library.repository.UserRepository;
 import com.sliit.library.security.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +23,9 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private MembershipRepository membershipRepository;
 
     @Autowired
     private PasswordEncoder encoder;
@@ -107,6 +113,30 @@ public class UserService {
         return new MessageResponse("Password updated successfully");
     }
 
+    public MessageResponse createLibrarian(SignupRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            return MessageResponse.builder().message("Error: Email is already in use!").success(false).build();
+        }
+        if (userRepository.existsByStudentStaffId(request.getStudentStaffId())) {
+            return MessageResponse.builder().message("Error: Staff ID is already in use!").success(false).build();
+        }
+        User user = User.builder()
+                .fullName(request.getFullName())
+                .studentStaffId(request.getStudentStaffId())
+                .email(request.getEmail())
+                .password(encoder.encode(request.getPassword()))
+                .phoneNumber(request.getPhoneNumber())
+                .role(Role.LIBRARIAN)
+                .faculty(request.getFaculty())
+                .programme(request.getProgramme())
+                .isActive(true)
+                .currentBorrowCount(0)
+                .outstandingFine(0.0)
+                .build();
+        userRepository.save(user);
+        return new MessageResponse("Librarian account created successfully!");
+    }
+
     private User getCurrentAuthenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
@@ -117,6 +147,16 @@ public class UserService {
     private UserProfileResponse mapToProfileResponse(User user) {
         int maxBooks = getMaxBooksForRole(user.getRole());
         int maxDays = getMaxDaysForRole(user.getRole());
+
+        boolean isMember = false;
+        String membershipId = null;
+        if (user.getRole() == Role.STUDENT || user.getRole() == Role.FACULTY) {
+            var membership = membershipRepository.findByUserId(user.getId());
+            if (membership.isPresent() && membership.get().getStatus() == MembershipStatus.APPROVED) {
+                isMember = true;
+                membershipId = membership.get().getMembershipId();
+            }
+        }
 
         return UserProfileResponse.builder()
                 .id(user.getId())
@@ -134,6 +174,8 @@ public class UserService {
                 .createdAt(user.getCreatedAt())
                 .maxBooksAllowed(maxBooks)
                 .maxDaysAllowed(maxDays)
+                .isMember(isMember)
+                .membershipId(membershipId)
                 .build();
     }
 

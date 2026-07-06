@@ -17,6 +17,10 @@ const Users = () => {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [newRole, setNewRole] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    fullName: '', studentStaffId: '', email: '', password: '', phoneNumber: '', faculty: '', programme: ''
+  });
 
   useEffect(() => { fetchUsers(); }, [currentPage, roleFilter]);
 
@@ -77,6 +81,20 @@ const Users = () => {
     }
   };
 
+  const handleCreateLibrarian = async (e) => {
+    e.preventDefault();
+    try {
+      setError(''); setSuccess('');
+      await userAPI.createLibrarian(createForm);
+      setSuccess('Librarian account created successfully.');
+      setShowCreateModal(false);
+      setCreateForm({ fullName: '', studentStaffId: '', email: '', password: '', phoneNumber: '', faculty: '', programme: '' });
+      fetchUsers();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to create librarian');
+    }
+  };
+
   const getRoleBadge = (role) => {
     const map = { ADMIN: 'danger', LIBRARIAN: 'primary', FACULTY: 'info', STUDENT: 'success' };
     return <Badge bg={map[role] || 'secondary'}>{role}</Badge>;
@@ -92,6 +110,12 @@ const Users = () => {
 
       {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
       {success && <Alert variant="success" dismissible onClose={() => setSuccess('')}>{success}</Alert>}
+
+      <div className="d-flex justify-content-end mb-3">
+        <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+          <i className="bi bi-person-plus me-2"></i>Create Librarian Account
+        </Button>
+      </div>
 
       <Card className="mb-4">
         <Card.Body>
@@ -216,6 +240,41 @@ const Users = () => {
             Update Role
           </Button>
         </Modal.Footer>
+      </Modal>
+
+      {/* Create Librarian Modal */}
+      <Modal show={showCreateModal} onHide={() => setShowCreateModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title><i className="bi bi-person-plus me-2"></i>Create Librarian Account</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleCreateLibrarian}>
+          <Modal.Body>
+            <Form.Group className="mb-3">
+              <Form.Label>Full Name</Form.Label>
+              <Form.Control required value={createForm.fullName} onChange={e => setCreateForm({...createForm, fullName: e.target.value})} placeholder="Full name" />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Staff ID</Form.Label>
+              <Form.Control required value={createForm.studentStaffId} onChange={e => setCreateForm({...createForm, studentStaffId: e.target.value})} placeholder="e.g. LIB002" />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Email</Form.Label>
+              <Form.Control type="email" required value={createForm.email} onChange={e => setCreateForm({...createForm, email: e.target.value})} placeholder="Email address" />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Password</Form.Label>
+              <Form.Control type="password" required minLength={6} value={createForm.password} onChange={e => setCreateForm({...createForm, password: e.target.value})} placeholder="Min 6 characters" />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Phone Number</Form.Label>
+              <Form.Control required value={createForm.phoneNumber} onChange={e => setCreateForm({...createForm, phoneNumber: e.target.value})} placeholder="Phone number" />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+            <Button variant="primary" type="submit">Create Account</Button>
+          </Modal.Footer>
+        </Form>
       </Modal>
     </Container>
   );

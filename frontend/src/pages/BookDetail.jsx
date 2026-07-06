@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { bookAPI, borrowAPI, reservationAPI } from '../services/api';
 import { Container, Row, Col, Card, Button, Badge, Alert, Spinner, Modal, Form } from 'react-bootstrap';
@@ -132,14 +132,38 @@ const BookDetail = () => {
           {user && (
             <Card className="mt-3">
               <Card.Body className="d-grid gap-2">
-                {book.availableCopies > 0 ? (
+                {user.role === 'LIBRARIAN' || user.role === 'ADMIN' ? (
                   <Button variant="primary" onClick={() => setShowBorrowModal(true)}>
                     <i className="bi bi-book me-2"></i>Issue Book
                   </Button>
-                ) : (
+                ) : book.availableCopies > 0 ? (
+                  user.isMember ? (
+                    <Button variant="primary" onClick={() => setShowBorrowModal(true)}>
+                      <i className="bi bi-book me-2"></i>Borrow Book
+                    </Button>
+                  ) : (
+                    <>
+                      <Alert variant="warning" className="mb-2 py-2 small">
+                        <i className="bi bi-lock me-1"></i>Library membership required to borrow books.
+                      </Alert>
+                      <Button as={Link} to="/membership" variant="outline-primary" size="sm">
+                        Apply for Membership
+                      </Button>
+                    </>
+                  )
+                ) : user.isMember ? (
                   <Button variant="warning" onClick={() => setShowReserveModal(true)}>
                     <i className="bi bi-bookmark me-2"></i>Reserve Book
                   </Button>
+                ) : (
+                  <>
+                    <Alert variant="warning" className="mb-2 py-2 small">
+                      <i className="bi bi-lock me-1"></i>Library membership required to reserve books.
+                    </Alert>
+                    <Button as={Link} to="/membership" variant="outline-primary" size="sm">
+                      Apply for Membership
+                    </Button>
+                  </>
                 )}
               </Card.Body>
             </Card>

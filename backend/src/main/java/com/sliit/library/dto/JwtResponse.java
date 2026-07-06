@@ -19,4 +19,5 @@ public class JwtResponse {
     private String email;
     private Role role;
     private String studentStaffId;
+    private Boolean isMember;
 }

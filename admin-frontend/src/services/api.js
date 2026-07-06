@@ -29,7 +29,9 @@ api.interceptors.response.use(
 );
 
 export const authAPI = {
-  login: (email, password) => api.post('/auth/login', { email, password }),
+  login: (email, password) => api.post('/auth/login', { identifier: email, password }),
+  forgotPassword: (identifier) => api.post('/auth/forgot-password', null, { params: { identifier } }),
+  resetPassword: (token, newPassword) => api.post('/auth/reset-password', null, { params: { token, newPassword } }),
 };
 
 export const userAPI = {
@@ -38,6 +40,7 @@ export const userAPI = {
   deactivateUser: (id) => api.put(`/admin/users/${id}/deactivate`),
   activateUser: (id) => api.put(`/admin/users/${id}/activate`),
   changeRole: (id, role) => api.put(`/admin/users/${id}/role`, null, { params: { role } }),
+  createLibrarian: (data) => api.post('/admin/users/create-librarian', data),
 };
 
 export const bookAPI = {

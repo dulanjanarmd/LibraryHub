@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { ebookAPI } from '../services/api';
 import { Container, Row, Col, Card, Form, Button, Badge, Spinner, Alert, Pagination } from 'react-bootstrap';
 
 const EBooks = () => {
+  const { user } = useAuth();
   const [ebooks, setEbooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -45,6 +48,11 @@ const EBooks = () => {
   };
 
   const handleDownload = async (id, title) => {
+    const canDownload = user?.isMember || user?.role === 'LIBRARIAN' || user?.role === 'ADMIN';
+    if (!canDownload) {
+      setError('Library membership is required to download eBooks.');
+      return;
+    }
     try {
       const response = await ebookAPI.download(id);
       const blob = new Blob([response.data], { type: 'application/pdf' });
@@ -151,14 +159,20 @@ const EBooks = () => {
                       <i className="bi bi-download me-1"></i>{ebook.downloadCount} downloads
                     </small>
                   </div>
-                  <Button
-                    variant="outline-primary"
-                    size="sm"
-                    className="w-100 mt-2"
-                    onClick={() => handleDownload(ebook.id, ebook.title)}
-                  >
-                    <i className="bi bi-download me-1"></i>Download
-                  </Button>
+                  {user?.isMember || user?.role === 'LIBRARIAN' || user?.role === 'ADMIN' ? (
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      className="w-100 mt-2"
+                      onClick={() => handleDownload(ebook.id, ebook.title)}
+                    >
+                      <i className="bi bi-download me-1"></i>Download
+                    </Button>
+                  ) : (
+                    <Button as={Link} to="/membership" variant="outline-warning" size="sm" className="w-100 mt-2">
+                      <i className="bi bi-lock me-1"></i>Members Only
+                    </Button>
+                  )}
                 </Card.Body>
               </Card>
             </Col>

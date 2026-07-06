@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Form, Button, Alert, Spinner } from 'react-bootstrap';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,12 +19,11 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const userData = await login(email, password);
+      const userData = await login(identifier, password);
 
-      // Block admin users — they must use the admin portal
       if (userData.role === 'ADMIN') {
-        logout(); // clear the stored token/user immediately
-        setError('Admin accounts must use the Admin Portal. Please visit the admin application to sign in.');
+        logout();
+        setError('Admin accounts must use the Admin Portal.');
         return;
       }
 
@@ -63,17 +62,17 @@ const Login = () => {
 
         <Form onSubmit={handleSubmit}>
           <Form.Group className="mb-3">
-            <Form.Label>Email Address</Form.Label>
+            <Form.Label>Email or Student/Staff ID</Form.Label>
             <Form.Control
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              placeholder="Enter email or ID (e.g. IT12345678)"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               required
             />
           </Form.Group>
 
-          <Form.Group className="mb-4">
+          <Form.Group className="mb-2">
             <Form.Label>Password</Form.Label>
             <Form.Control
               type="password"
@@ -83,6 +82,12 @@ const Login = () => {
               required
             />
           </Form.Group>
+
+          <div className="text-end mb-4">
+            <Link to="/forgot-password" className="text-decoration-none small text-muted">
+              Forgot password?
+            </Link>
+          </div>
 
           <Button
             variant="primary"
@@ -109,17 +114,6 @@ const Login = () => {
               Register here
             </Link>
           </p>
-        </div>
-
-        <hr className="my-3" />
-        <div className="text-center">
-          <small className="text-muted">
-            <i className="bi bi-info-circle me-1"></i>
-            Demo Accounts:<br />
-            <strong>student@example.com</strong> / password<br />
-            <strong>librarian@example.com</strong> / password<br />
-            <strong>faculty@example.com</strong> / password
-          </small>
         </div>
       </div>
     </div>

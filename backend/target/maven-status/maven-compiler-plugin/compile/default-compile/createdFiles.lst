@@ -1,5 +1,6 @@
 com\sliit\library\dto\NotificationResponse$NotificationResponseBuilder.class
 com\sliit\library\dto\NotificationResponse.class
+com\sliit\library\entity\Membership.class
 com\sliit\library\dto\PopularBookDTO.class
 com\sliit\library\entity\Category$CategoryBuilder.class
 com\sliit\library\entity\Book$BookBuilder.class
@@ -12,6 +13,7 @@ com\sliit\library\entity\EBook.class
 com\sliit\library\entity\Book.class
 com\sliit\library\dto\UserProfileResponse$UserProfileResponseBuilder.class
 com\sliit\library\controller\EBookController.class
+com\sliit\library\dto\MembershipResponse.class
 com\sliit\library\repository\EBookRepository.class
 com\sliit\library\service\AuthService.class
 com\sliit\library\repository\CategoryRepository.class
@@ -27,6 +29,7 @@ com\sliit\library\dto\FineResponse.class
 com\sliit\library\scheduler\LibraryScheduler.class
 com\sliit\library\entity\BorrowStatus.class
 com\sliit\library\dto\BorrowResponse.class
+com\sliit\library\entity\MembershipStatus.class
 com\sliit\library\controller\CategoryController.class
 com\sliit\library\entity\ReservationStatus.class
 com\sliit\library\dto\UpdateProfileRequest.class
@@ -37,6 +40,7 @@ com\sliit\library\dto\DashboardStats.class
 com\sliit\library\dto\BookRequestDTO$BookRequestDTOBuilder.class
 com\sliit\library\dto\ReservationRequest.class
 com\sliit\library\service\BorrowService.class
+com\sliit\library\controller\MembershipController.class
 com\sliit\library\dto\OverdueItemDTO.class
 com\sliit\library\entity\Fine$FineBuilder.class
 com\sliit\library\entity\Reservation$ReservationBuilder.class
@@ -58,12 +62,17 @@ com\sliit\library\entity\BookStatus.class
 com\sliit\library\controller\NotificationController.class
 com\sliit\library\dto\MessageResponse.class
 com\sliit\library\entity\FineStatus.class
+com\sliit\library\repository\MembershipRepository.class
 com\sliit\library\dto\LoginRequest.class
 com\sliit\library\dto\OverdueItemDTO$OverdueItemDTOBuilder.class
 com\sliit\library\controller\BookController.class
 com\sliit\library\security\JwtUtils.class
+com\sliit\library\dto\MembershipReviewRequest.class
+com\sliit\library\dto\MembershipRequest.class
 com\sliit\library\entity\Notification$NotificationBuilder.class
+com\sliit\library\service\MembershipService.class
 com\sliit\library\dto\FineResponse$FineResponseBuilder.class
+com\sliit\library\entity\Membership$MembershipBuilder.class
 com\sliit\library\controller\ReservationController.class
 com\sliit\library\dto\DashboardStats$DashboardStatsBuilder.class
 com\sliit\library\service\FineService.class
@@ -76,6 +85,7 @@ com\sliit\library\repository\BookRequestRepository.class
 com\sliit\library\entity\User$UserBuilder.class
 com\sliit\library\dto\BookResponse.class
 com\sliit\library\dto\UserProfileResponse.class
+com\sliit\library\dto\MembershipResponse$MembershipResponseBuilder.class
 com\sliit\library\entity\Reservation.class
 com\sliit\library\entity\NotificationType.class
 com\sliit\library\security\UserDetailsImpl.class

@@ -77,6 +77,28 @@ const AppNavbar = () => {
                 <Nav.Link as={Link} to="/dashboard" active={isActive('/dashboard')}>
                   <i className="bi bi-speedometer2 me-1"></i>Dashboard
                 </Nav.Link>
+                <NavDropdown title={<><i className="bi bi-tools me-1"></i>Librarian</>} id="librarian-dropdown">
+                  <NavDropdown.Item as={Link} to="/librarian/issue">
+                    <i className="bi bi-book me-2"></i>Issue Book
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={Link} to="/librarian/return">
+                    <i className="bi bi-arrow-return-left me-2"></i>Return Book
+                  </NavDropdown.Item>
+                  <NavDropdown.Divider />
+                  <NavDropdown.Item as={Link} to="/librarian/inventory">
+                    <i className="bi bi-collection me-2"></i>Inventory
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={Link} to="/librarian/reservations">
+                    <i className="bi bi-bookmark-check me-2"></i>Reservations
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={Link} to="/librarian/fines">
+                    <i className="bi bi-cash-coin me-2"></i>Fines
+                  </NavDropdown.Item>
+                  <NavDropdown.Divider />
+                  <NavDropdown.Item as={Link} to="/librarian/reports">
+                    <i className="bi bi-bar-chart-line me-2"></i>Reports
+                  </NavDropdown.Item>
+                </NavDropdown>
               </>
             )}
             {user.role === 'STUDENT' && (
@@ -87,6 +109,11 @@ const AppNavbar = () => {
             {user.role === 'FACULTY' && (
               <Nav.Link as={Link} to="/faculty/dashboard" active={isActive('/faculty/dashboard')}>
                 <i className="bi bi-person-circle me-1"></i>My Dashboard
+              </Nav.Link>
+            )}
+            {(user.role === 'STUDENT' || user.role === 'FACULTY') && (
+              <Nav.Link as={Link} to="/membership" active={isActive('/membership')}>
+                <i className="bi bi-person-badge me-1"></i>Membership
               </Nav.Link>
             )}
             <Nav.Link as={Link} to="/ebooks" active={isActive('/ebooks')}>

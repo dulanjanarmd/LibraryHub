@@ -133,6 +133,7 @@ public class FineService {
                 .id(fine.getId())
                 .userId(fine.getUser().getId())
                 .userName(fine.getUser().getFullName())
+                .studentStaffId(fine.getUser().getStudentStaffId())
                 .bookId(fine.getBook() != null ? fine.getBook().getId() : null)
                 .bookTitle(fine.getBook() != null ? fine.getBook().getTitle() : "N/A")
                 .amount(fine.getAmount())

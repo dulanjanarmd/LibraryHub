@@ -38,7 +38,7 @@ public class UserController {
     }
 
     @GetMapping("/admin/users")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('LIBRARIAN')")
     public ResponseEntity<Page<UserProfileResponse>> getAllUsers(
             @RequestParam(required = false) String keyword,
             Pageable pageable) {
@@ -75,5 +75,11 @@ public class UserController {
             @RequestParam String oldPassword,
             @RequestParam String newPassword) {
         return ResponseEntity.ok(userService.updatePassword(oldPassword, newPassword));
+    }
+
+    @PostMapping("/admin/users/create-librarian")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<MessageResponse> createLibrarian(@Valid @RequestBody SignupRequest request) {
+        return ResponseEntity.ok(userService.createLibrarian(request));
     }
 }

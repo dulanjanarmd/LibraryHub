@@ -114,6 +114,16 @@ const StudentDashboard = () => {
               <Button as={Link} to="/books" variant="outline-success" size="sm">
                 <i className="bi bi-search me-1"></i>Browse Catalog
               </Button>
+              {!user?.isMember && (
+                <Button as={Link} to="/membership" variant="outline-info" size="sm">
+                  <i className="bi bi-person-badge me-1"></i>Apply for Membership
+                </Button>
+              )}
+              {user?.isMember && (
+                <Button variant="outline-success" size="sm" disabled>
+                  <i className="bi bi-patch-check me-1"></i>Member: {user.membershipId}
+                </Button>
+              )}
             </Card.Body>
           </Card>
         </Col>
