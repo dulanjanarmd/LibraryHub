@@ -81,15 +81,14 @@ const StudentDashboard = () => {
           { icon: '', value: `LKR ${totalFines.toFixed(0)}`, label: 'Fines Due', color: '#6366f1', bg: 'rgba(99,102,241,0.1)', to: '/my-fines' },
         ].map(s => (
           <Link key={s.to} to={s.to} style={{ textDecoration: 'none' }}>
-            <div style={{ background: 'white', borderRadius: 16, padding: '22px 20px', border: '1px solid #e8ecf0', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 16, transition: 'all 0.22s' }}
+            <div style={{ background: 'white', borderRadius: 16, padding: '22px 20px', border: '1px solid #e8ecf0', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', position: 'relative', overflow: 'hidden', transition: 'all 0.22s' }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = s.color + '60'; e.currentTarget.style.boxShadow = `0 8px 24px ${s.color}18`; }}
               onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = '#e8ecf0'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)'; }}
             >
-              <div style={{ width: 46, height: 46, borderRadius: 12, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0 }}>{s.icon}</div>
-              <div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1a1a2e', lineHeight: 1 }}>{s.value}</div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b', marginTop: 4 }}>{s.label}</div>
-              </div>
+              {/* Watermark icon */}
+              <div style={{ position: 'absolute', bottom: -8, right: -4, fontSize: '5rem', opacity: 0.07, lineHeight: 1, userSelect: 'none', pointerEvents: 'none', color: s.color }}>{s.icon}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1a1a2e', lineHeight: 1, position: 'relative', zIndex: 1 }}>{s.value}</div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b', marginTop: 4, position: 'relative', zIndex: 1 }}>{s.label}</div>
             </div>
           </Link>
         ))}

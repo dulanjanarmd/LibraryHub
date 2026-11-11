@@ -45,28 +45,24 @@ const AdminDashboard = () => {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: 24, marginBottom: 24 }}>
         {/* User Summary Card */}
-        <div style={{ background: 'white', borderRadius: 24, border: '1px solid #e8ecf0', padding: '32px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-            <div style={{ width: 64, height: 64, borderRadius: 16, background: 'rgba(76,29,149,0.1)', color: '#4c1d95', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}></div>
-            <div>
-              <div style={{ fontSize: '2rem', fontWeight: 900, color: '#1a1a2e', lineHeight: 1 }}>{stats?.totalUsers || 0}</div>
-              <div style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>Total Users</div>
-            </div>
+        <div style={{ background: 'white', borderRadius: 24, border: '1px solid #e8ecf0', padding: '32px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', position: 'relative', overflow: 'hidden' }}>
+          {/* Watermark icon */}
+          <div style={{ position: 'absolute', bottom: -12, right: -6, fontSize: '7rem', opacity: 0.06, lineHeight: 1, userSelect: 'none', pointerEvents: 'none', color: '#4c1d95' }}></div>
+          <div style={{ marginBottom: 24, position: 'relative', zIndex: 1 }}>
+            <div style={{ fontSize: '2rem', fontWeight: 900, color: '#1a1a2e', lineHeight: 1 }}>{stats?.totalUsers || 0}</div>
+            <div style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>Total Users</div>
           </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, position: 'relative', zIndex: 1 }}>
             {[
-              { l: 'Students', v: usersByRole.STUDENT, c: '#10b981', bg: 'rgba(16,185,129,0.1)' },
-              { l: 'Faculty', v: usersByRole.FACULTY, c: '#0ea5e9', bg: 'rgba(14,165,233,0.1)' },
-              { l: 'Librarians', v: usersByRole.LIBRARIAN, c: '#8b5cf6', bg: 'rgba(139,92,246,0.1)' },
-              { l: 'Admins', v: usersByRole.ADMIN, c: '#ef4444', bg: 'rgba(239,68,68,0.1)' }
+              { l: 'Students', v: usersByRole.STUDENT, c: '#10b981' },
+              { l: 'Faculty', v: usersByRole.FACULTY, c: '#0ea5e9' },
+              { l: 'Librarians', v: usersByRole.LIBRARIAN, c: '#8b5cf6' },
+              { l: 'Admins', v: usersByRole.ADMIN, c: '#ef4444' }
             ].map(r => (
               <div key={r.l} style={{ background: '#f8fafc', borderRadius: 12, padding: '12px 16px', display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, marginBottom: 4 }}>{r.l}</span>
-                <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1a1a2e', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: r.c }}></span>
-                  {r.v || 0}
-                </span>
+                <span style={{ fontSize: '1.2rem', fontWeight: 800, color: r.c }}>{r.v || 0}</span>
               </div>
             ))}
           </div>
@@ -75,10 +71,11 @@ const AdminDashboard = () => {
         {/* Quick Stats Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
           {statCards.map(s => (
-            <div key={s.title} style={{ background: 'white', borderRadius: 24, border: '1px solid #e8ecf0', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: 20, transition: 'transform 0.2s' }}
+            <div key={s.title} style={{ background: 'white', borderRadius: 24, border: '1px solid #e8ecf0', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: 20, transition: 'transform 0.2s', position: 'relative', overflow: 'hidden' }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-4px)'} onMouseLeave={e => e.currentTarget.style.transform = ''}>
-              <div style={{ width: 64, height: 64, borderRadius: 16, background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', flexShrink: 0 }}>{s.icon}</div>
-              <div>
+              {/* Watermark icon */}
+              <div style={{ position: 'absolute', bottom: -10, right: -4, fontSize: '6rem', opacity: 0.07, lineHeight: 1, userSelect: 'none', pointerEvents: 'none', color: s.color }}>{s.icon}</div>
+              <div style={{ position: 'relative', zIndex: 1 }}>
                 <div style={{ fontSize: '2.4rem', fontWeight: 900, color: s.color, lineHeight: 1, marginBottom: 4 }}>{s.val}</div>
                 <div style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>{s.title}</div>
               </div>

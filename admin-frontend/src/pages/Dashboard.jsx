@@ -25,7 +25,7 @@ const S = {
   },
 };
 
-const StatCard = ({ value, label, subtext, color }) => {
+const StatCard = ({ icon, value, label, subtext, color }) => {
   const colors = {
     orange: { border: '#ef5a24', bg: 'rgba(239,90,36,0.08)', text: '#ef5a24' },
     green:  { border: '#10b981', bg: 'rgba(16,185,129,0.08)', text: '#10b981' },
@@ -42,9 +42,12 @@ const StatCard = ({ value, label, subtext, color }) => {
       background: 'white', borderRadius: '16px', padding: '22px 24px',
       border: '1px solid #e8ecf0',
       boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-      display: 'flex', flexDirection: 'column', justifyContent: 'center'
+      display: 'flex', flexDirection: 'column', justifyContent: 'center',
+      position: 'relative', overflow: 'hidden',
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+      {/* Watermark icon */}
+      {icon && <div style={{ position: 'absolute', bottom: -10, right: -4, fontSize: '5rem', opacity: 0.07, lineHeight: 1, userSelect: 'none', pointerEvents: 'none', color: c.text }}>{icon}</div>}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, position: 'relative', zIndex: 1 }}>
         <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
         {subtext && (
           <span style={{ fontSize: '0.72rem', fontWeight: 700, background: c.bg, color: c.text, padding: '3px 8px', borderRadius: 6 }}>
@@ -52,7 +55,7 @@ const StatCard = ({ value, label, subtext, color }) => {
           </span>
         )}
       </div>
-      <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#1a1a2e', lineHeight: 1 }}>{value ?? 0}</div>
+      <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#1a1a2e', lineHeight: 1, position: 'relative', zIndex: 1 }}>{value ?? 0}</div>
     </div>
   );
 };
@@ -177,14 +180,14 @@ const Dashboard = () => {
 
       {/* Primary KPI Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 20, marginBottom: 28 }}>
-        <StatCard value={stats?.totalCategories} label="Total Book Categories" subtext={`${stats?.totalUsers || 0} Users`} color="blue" />
-        <StatCard value={stats?.totalBooks} label="Physical Catalog Books" color="orange" />
-        <StatCard value={stats?.totalEBooks} label="Digital eBooks" color="green" />
-        <StatCard value={stats?.totalPastPapers} label="Past Exam Papers" color="teal" />
-        <StatCard value={stats?.totalResearchPapers} label="Research Papers" color="purple" />
-        <StatCard value={stats?.activeLoans} label="Active Borrowed Loans" color="indigo" />
-        <StatCard value={stats?.overdueLoans} label="Overdue Loans" color="red" />
-        <StatCard value={`Rs. ${(stats?.totalFinesCollected || 0).toFixed(2)}`} label="Total Fines Collected" color="amber" />
+        <StatCard icon="" value={stats?.totalCategories} label="Total Book Categories" subtext={`${stats?.totalUsers || 0} Users`} color="blue" />
+        <StatCard icon="" value={stats?.totalBooks} label="Physical Catalog Books" color="orange" />
+        <StatCard icon="" value={stats?.totalEBooks} label="Digital eBooks" color="green" />
+        <StatCard icon="" value={stats?.totalPastPapers} label="Past Exam Papers" color="teal" />
+        <StatCard icon="" value={stats?.totalResearchPapers} label="Research Papers" color="purple" />
+        <StatCard icon="" value={stats?.activeLoans} label="Active Borrowed Loans" color="indigo" />
+        <StatCard icon="️" value={stats?.overdueLoans} label="Overdue Loans" color="red" />
+        <StatCard icon="" value={`Rs. ${(stats?.totalFinesCollected || 0).toFixed(2)}`} label="Total Fines Collected" color="amber" />
       </div>
 
       {/* Analytics Charts Row */}

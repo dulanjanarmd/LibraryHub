@@ -35,18 +35,24 @@ const S = {
 
 const StatCard = ({ icon, value, label, color, to }) => {
   const colors = {
-    orange: { bg: 'rgba(239,90,36,0.10)', text: '#ef5a24' },
-    green:  { bg: 'rgba(16,185,129,0.10)', text: '#10b981' },
-    red:    { bg: 'rgba(239,68,68,0.10)',  text: '#ef4444' },
-    purple: { bg: 'rgba(99,102,241,0.10)', text: '#6366f1' },
-    amber:  { bg: 'rgba(245,158,11,0.10)', text: '#f59e0b' },
+    orange: { text: '#ef5a24' },
+    green:  { text: '#10b981' },
+    red:    { text: '#ef4444' },
+    purple: { text: '#6366f1' },
+    amber:  { text: '#f59e0b' },
   };
   const c = colors[color] || colors.orange;
   const content = (
     <div style={S.statCard(color)}>
-      <div style={{ width: 48, height: 48, borderRadius: 12, background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, fontSize: '1.4rem' }}>{icon}</div>
-      <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1a1a2e', lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: '0.78rem', fontWeight: 500, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 6 }}>{label}</div>
+      {/* Watermark icon */}
+      <div style={{
+        position: 'absolute', bottom: -8, right: -4,
+        fontSize: '5rem', opacity: 0.07, lineHeight: 1,
+        userSelect: 'none', pointerEvents: 'none',
+        color: c.text,
+      }}>{icon}</div>
+      <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1a1a2e', lineHeight: 1, position: 'relative', zIndex: 1 }}>{value}</div>
+      <div style={{ fontSize: '0.78rem', fontWeight: 500, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 6, position: 'relative', zIndex: 1 }}>{label}</div>
     </div>
   );
   return to ? <Link to={to} style={{ textDecoration: 'none', display: 'block' }}>{content}</Link> : content;

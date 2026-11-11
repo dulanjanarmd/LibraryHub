@@ -26,7 +26,7 @@ const Register = () => {
     finally { setLoading(false); }
   };
 
-  const inputStyle = { width: '100%', padding: '14px 20px', background: '#f8fafc', border: '1.5px solid #e8ecf0', borderRadius: 12, fontFamily: 'Poppins, sans-serif', fontSize: '0.9rem', color: '#1e293b', outline: 'none', boxSizing: 'border-box' };
+  const inputStyle = { width: '100%', padding: '11px 16px', background: '#f8fafc', border: '1.5px solid #e8ecf0', borderRadius: 12, fontFamily: 'Poppins, sans-serif', fontSize: '0.9rem', color: '#1e293b', outline: 'none', boxSizing: 'border-box' };
   const labelStyle = { display: 'block', fontWeight: 600, fontSize: '0.85rem', color: '#374151', marginBottom: 6 };
 
   return (
@@ -59,17 +59,17 @@ const Register = () => {
       </div>
 
       {/* Right Side: Form */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', background: 'white' }}>
-        <div style={{ width: '100%', maxWidth: 520, margin: 'auto' }} className="animate-fade-in">
-          <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            <h2 style={{ fontWeight: 800, fontSize: '2rem', color: '#1a1a2e', margin: '0 0 12px' }}>Create Account</h2>
-            <p style={{ color: '#64748b', fontSize: '1rem', margin: 0 }}>Fill in your details to get started</p>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '32px 40px', background: 'white', overflowY: 'auto', maxHeight: '100vh' }}>
+        <div style={{ width: '100%', maxWidth: 520, margin: '0 auto' }} className="animate-fade-in">
+          <div style={{ textAlign: 'center', marginBottom: 20 }}>
+            <h2 style={{ fontWeight: 800, fontSize: '1.8rem', color: '#1a1a2e', margin: '0 0 8px' }}>Create Account</h2>
+            <p style={{ color: '#64748b', fontSize: '0.95rem', margin: 0 }}>Fill in your details to get started</p>
           </div>
 
           {error && <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, padding: '16px', marginBottom: 24, color: '#b91c1c', fontSize: '0.9rem', fontWeight: 500, textAlign: 'center' }}>{error}</div>}
 
           <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <div>
                 <label style={labelStyle}>Full Name</label>
                 <input name="fullName" type="text" placeholder="Enter full name" value={formData.fullName} onChange={handleChange} required style={inputStyle}
@@ -84,14 +84,14 @@ const Register = () => {
               </div>
             </div>
 
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 12 }}>
               <label style={labelStyle}>Email Address</label>
               <input name="email" type="email" placeholder="your@email.com" value={formData.email} onChange={handleChange} required style={inputStyle}
                 onFocus={e => { e.target.style.borderColor = '#ef5a24'; e.target.style.background = 'white'; }}
                 onBlur={e => { e.target.style.borderColor = '#e8ecf0'; e.target.style.background = '#f8fafc'; }} />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <div>
                 <label style={labelStyle}>Password</label>
                 <input name="password" type="password" placeholder="Min 6 characters" value={formData.password} onChange={handleChange} required style={inputStyle}
@@ -106,14 +106,14 @@ const Register = () => {
               </div>
             </div>
 
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 12 }}>
               <label style={labelStyle}>Phone Number</label>
               <input name="phoneNumber" type="tel" placeholder="07X XXXXXXX" value={formData.phoneNumber} onChange={handleChange} required style={inputStyle}
                 onFocus={e => { e.target.style.borderColor = '#ef5a24'; e.target.style.background = 'white'; }}
                 onBlur={e => { e.target.style.borderColor = '#e8ecf0'; e.target.style.background = '#f8fafc'; }} />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <div>
                 <label style={labelStyle}>Role</label>
                 <select name="role" value={formData.role} onChange={handleChange} style={inputStyle}>
@@ -133,19 +133,19 @@ const Register = () => {
               </div>
             </div>
 
-            <div style={{ marginBottom: 24 }}>
+            <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>Programme (Optional)</label>
               <input name="programme" type="text" placeholder="e.g., BSc IT" value={formData.programme} onChange={handleChange} style={inputStyle}
                 onFocus={e => { e.target.style.borderColor = '#ef5a24'; e.target.style.background = 'white'; }}
                 onBlur={e => { e.target.style.borderColor = '#e8ecf0'; e.target.style.background = '#f8fafc'; }} />
             </div>
 
-            <button type="submit" disabled={loading} style={{ width: '100%', padding: '16px', background: 'linear-gradient(135deg, #1a1a2e, #2d1b69)', color: 'white', border: 'none', borderRadius: 12, fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: '1.05rem', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: '0 8px 24px rgba(26,26,46,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+            <button type="submit" disabled={loading} style={{ width: '100%', padding: '14px', background: 'linear-gradient(135deg, #1a1a2e, #2d1b69)', color: 'white', border: 'none', borderRadius: 12, fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: '1.05rem', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: '0 8px 24px rgba(26,26,46,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
               {loading ? <Spinner size="sm" /> : 'Create Account'}
             </button>
           </form>
 
-          <p style={{ textAlign: 'center', marginTop: 24, color: '#64748b', fontSize: '0.95rem' }}>
+          <p style={{ textAlign: 'center', marginTop: 16, color: '#64748b', fontSize: '0.95rem' }}>
             Already have an account? <Link to="/login" style={{ color: '#ef5a24', fontWeight: 700, textDecoration: 'none' }}>Sign in</Link>
           </p>
         </div>
