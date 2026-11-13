@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { researchPapersAPI } from '../services/api';
 import { Spinner } from 'react-bootstrap';
+import { FiEye, FiDownload, FiTrash2 } from 'react-icons/fi';
 
 const emptyForm = { title: '', author: '', abstractText: '', journal: '', publicationYear: '', researchField: '', keywords: '' };
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
@@ -156,10 +157,16 @@ const ResearchPapers = () => {
                   {p.journal && <div><div style={{ fontSize: '0.68rem', color: '#9ca3af' }}>Source</div><div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#374151' }}>{p.journal.slice(0, 18)}{p.journal.length > 18 ? '…' : ''}</div></div>}
                 </div>
 
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => handleView(p)} style={{ flex: 1, background: 'linear-gradient(135deg, #ef5a24, #ff8c5a)', color: 'white', border: 'none', borderRadius: 10, padding: '10px', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 12px rgba(239,90,36,0.22)' }}>Read Online</button>
-                  <button onClick={() => handleDownload(p)} style={{ flex: 1, background: 'linear-gradient(135deg, #1e3a8a, #06b6d4)', color: 'white', border: 'none', borderRadius: 10, padding: '10px', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'Poppins, sans-serif' }}>Download</button>
-                  {isLibrarian && <button onClick={() => handleDelete(p.id)} style={{ padding: '0 14px', background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1.5px solid rgba(239,68,68,0.2)', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}>Delete</button>}
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+                  <button onClick={() => handleView(p)} title="Read Online" style={{ width: 38, height: 38, background: 'linear-gradient(135deg, #ef5a24, #ff7a45)', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.18s', boxShadow: '0 4px 12px rgba(239,90,36,0.22)' }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(239,90,36,0.35)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 12px rgba(239,90,36,0.22)'; }}><FiEye size={17} /></button>
+                  <button onClick={() => handleDownload(p)} title="Download" style={{ width: 38, height: 38, background: 'linear-gradient(135deg, #1e3a8a, #06b6d4)', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.18s', boxShadow: '0 4px 12px rgba(6,182,212,0.2)' }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(6,182,212,0.35)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 12px rgba(6,182,212,0.2)'; }}><FiDownload size={17} /></button>
+                  {isLibrarian && <button onClick={() => handleDelete(p.id)} title="Delete" style={{ width: 38, height: 38, background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.18s' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = 'white'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.transform = ''; }}><FiTrash2 size={16} /></button>}
                 </div>
               </div>
             </div>

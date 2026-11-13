@@ -153,25 +153,27 @@ const Books = () => {
             {books.map((book, idx) => {
               const avail = book.availableCopies > 0;
               return (
-                <Link key={book.id} to={`/books/${book.id}`} style={{ textDecoration: 'none' }}>
-                  <div style={{ background: 'white', borderRadius: 16, overflow: 'hidden', border: '1px solid #e8ecf0', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', transition: 'all 0.22s' }}
+                <Link key={book.id} to={`/books/${book.id}`} style={{ textDecoration: 'none', display: 'flex' }}>
+                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', background: 'white', borderRadius: 16, overflow: 'hidden', border: '1px solid #e8ecf0', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', transition: 'all 0.22s' }}
                     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = '#ef5a2440'; }}
                     onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)'; e.currentTarget.style.borderColor = '#e8ecf0'; }}
                   >
-                    <div style={{ height: 200, background: 'linear-gradient(135deg, #667eea, #764ba2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                    <div style={{ height: 200, flexShrink: 0, background: 'linear-gradient(135deg, #667eea, #764ba2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
                       {book.coverImageUrl
                         ? <img src={book.coverImageUrl} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : <span style={{ fontSize: '4rem' }}></span>}
+                        : <span style={{ fontSize: '4rem' }}>📚</span>}
                       <div style={{ position: 'absolute', top: 10, right: 10 }}>
                         <span style={{ background: avail ? 'rgba(16,185,129,0.85)' : 'rgba(239,68,68,0.85)', color: 'white', borderRadius: 6, padding: '3px 10px', fontSize: '0.7rem', fontWeight: 700, backdropFilter: 'blur(4px)' }}>
                           {avail ? ` ${book.availableCopies} avail.` : ' Unavail.'}
                         </span>
                       </div>
                     </div>
-                    <div style={{ padding: '14px 14px 16px' }}>
-                      <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#1a1a2e', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: 6 }}>{book.title}</div>
-                      <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: 8, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>by {book.author}</div>
-                      {book.isbn && <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>ISBN: {book.isbn}</div>}
+                    <div style={{ padding: '14px 14px 16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#1a1a2e', lineHeight: 1.3, height: '2.6em', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: 6 }} title={book.title}>{book.title}</div>
+                      <div style={{ fontSize: '0.78rem', color: '#64748b', height: '1.2em', marginBottom: 8, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={`by ${book.author}`}>by {book.author}</div>
+                      <div style={{ fontSize: '0.72rem', color: '#9ca3af', minHeight: '1.1em', marginTop: 'auto' }}>
+                        {book.isbn ? `ISBN: ${book.isbn}` : '\u00A0'}
+                      </div>
                     </div>
                   </div>
                 </Link>

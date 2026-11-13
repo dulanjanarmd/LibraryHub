@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { pastPapersAPI } from '../services/api';
 import { Spinner } from 'react-bootstrap';
+import { FiEye, FiDownload, FiTrash2, FiFolder, FiFolderMinus, FiFolderPlus, FiExternalLink, FiSearch, FiFileText } from 'react-icons/fi';
 
 const emptyForm = {
   title: '',
@@ -48,6 +49,44 @@ const PastPapers = () => {
   const [viewing, setViewing] = useState(null);
   const [viewBlob, setViewBlob] = useState(null);
   const [viewLoading, setViewLoading] = useState(false);
+  const [expandedFolders, setExpandedFolders] = useState({});
+
+  // Global or configurable OneDrive base URL
+  const [oneDriveBaseUrl, setOneDriveBaseUrl] = useState(() => {
+    return localStorage.getItem('past_papers_onedrive_url') || 'https://onedrive.live.com';
+  });
+  const [showOneDriveConfig, setShowOneDriveConfig] = useState(false);
+  const [tempOneDriveUrl, setTempOneDriveUrl] = useState(oneDriveBaseUrl);
+
+  const saveOneDriveUrl = () => {
+    const trimmed = tempOneDriveUrl.trim() || 'https://onedrive.live.com';
+    setOneDriveBaseUrl(trimmed);
+    localStorage.setItem('past_papers_onedrive_url', trimmed);
+    setShowOneDriveConfig(false);
+    setSuccess('OneDrive link updated');
+    setTimeout(() => setSuccess(''), 3000);
+  };
+
+  const openOneDriveForSubject = (subjectName, courseCode) => {
+    const term = courseCode || subjectName || '';
+    const cleanBase = oneDriveBaseUrl.trim();
+    // If it's a direct link to a folder or search link
+    let targetUrl = cleanBase;
+    if (term) {
+      if (cleanBase.includes('sharepoint.com') || cleanBase.includes('onedrive.live.com')) {
+        const separator = cleanBase.includes('?') ? '&' : '?';
+        targetUrl = `${cleanBase}${separator}q=${encodeURIComponent(term)}`;
+      }
+    }
+    window.open(targetUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const toggleFolder = (key) => {
+    setExpandedFolders(prev => ({
+      ...prev,
+      [key]: prev[key] === undefined ? false : !prev[key]
+    }));
+  };
 
   useEffect(() => { load(); }, [selectedFaculty, selectedDegreeLevel, selectedYear, selectedSem, selectedIntakeBatch, searchModule]);
 
@@ -153,11 +192,35 @@ const PastPapers = () => {
           <h1 style={{ fontWeight: 800, fontSize: '1.6rem', margin: 0, marginBottom: 4 }}>Past Papers Archive</h1>
           <p style={{ opacity: 0.8, margin: 0, fontSize: '0.86rem' }}>Past exam papers by year, semester, and course — read online or download</p>
         </div>
-        {isLibrarian && (
-          <button onClick={() => setShowUpload(true)} style={{ position: 'relative', zIndex: 1, background: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 10, padding: '10px 20px', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', backdropFilter: 'blur(8px)' }}>
-            Upload Past Paper
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 12, alignItems: 'center' }}>
+          <button 
+            onClick={() => setShowOneDriveConfig(true)}
+            title="Configure OneDrive / Cloud Storage Link"
+            style={{ 
+              background: 'rgba(255,255,255,0.15)', 
+              color: 'white', 
+              border: '1px solid rgba(255,255,255,0.3)', 
+              borderRadius: 10, 
+              padding: '10px 18px', 
+              fontWeight: 600, 
+              fontSize: '0.84rem', 
+              cursor: 'pointer', 
+              fontFamily: 'Poppins, sans-serif', 
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              transition: 'all 0.2s'
+            }}
+          >
+            <span>☁️</span> OneDrive Link
           </button>
-        )}
+          {isLibrarian && (
+            <button onClick={() => setShowUpload(true)} style={{ background: 'white', color: '#7c2d12', border: 'none', borderRadius: 10, padding: '10px 20px', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 14px rgba(0,0,0,0.15)' }}>
+              Upload Past Paper
+            </button>
+          )}
+        </div>
       </div>
 
       {success && <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 10, padding: '12px 18px', marginBottom: 20, color: '#065f46', fontSize: '0.87rem', fontWeight: 500 }}>{success}</div>}
@@ -219,63 +282,263 @@ const PastPapers = () => {
 
       {loading ? <div style={{ textAlign: 'center', padding: '80px 0' }}><Spinner animation="border" style={{ color: '#ef5a24' }} /></div> : papers.length === 0 ? (
         <div style={{ background: 'white', borderRadius: 16, border: '1px solid #e8ecf0', padding: '60px', textAlign: 'center', color: '#9ca3af' }}>
-          <div style={{ fontSize: '3rem', marginBottom: 12 }}></div>
+          <div style={{ fontSize: '3rem', marginBottom: 12 }}>📁</div>
           <div style={{ fontWeight: 600, marginBottom: 8 }}>No past papers found</div>
           <div style={{ fontSize: '0.88rem' }}>Try clearing filters or check back later.</div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {grouped.keys.map(key => {
             const [y, aSem, s] = key.split('__');
-            return (
-              <div key={key}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-                  <div style={{ background: 'linear-gradient(135deg, #7c2d12, #ef5a24)', color: 'white', padding: '8px 16px', borderRadius: 999, fontWeight: 700, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>{y}</span>
-                  </div>
-                  <div style={{ background: 'rgba(239,90,36,0.1)', color: '#c2410c', padding: '8px 16px', borderRadius: 999, fontWeight: 700, fontSize: '0.85rem' }}>
-                    Sem {aSem || s}
-                  </div>
-                  <div style={{ background: 'rgba(37,99,235,0.08)', color: '#1d4ed8', padding: '8px 16px', borderRadius: 999, fontWeight: 700, fontSize: '0.85rem' }}>
-                    {s}
-                  </div>
-                  <span style={{ color: '#9ca3af', fontSize: '0.8rem' }}>• {grouped.groups[key].length} paper{grouped.groups[key].length === 1 ? '' : 's'}</span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-                  {grouped.groups[key].map(p => (
-                    <div key={p.id} style={{ background: 'white', borderRadius: 14, border: '1px solid #e8ecf0', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '18px 20px', display: 'flex', flexDirection: 'column', transition: 'all 0.2s' }}
-                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 10px 28px rgba(194,65,12,0.12)'; e.currentTarget.style.borderColor = 'rgba(239,90,36,0.35)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)'; e.currentTarget.style.borderColor = '#e8ecf0'; }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
-                        <div style={{ width: 44, height: 44, borderRadius: 10, background: 'rgba(239,90,36,0.1)', color: '#c2410c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}></div>
-                        {p.examType && <span style={{ background: 'rgba(124,45,18,0.1)', color: '#7c2d12', borderRadius: 6, padding: '3px 10px', fontSize: '0.7rem', fontWeight: 700 }}>{p.examType}</span>}
-                      </div>
-                      {p.courseCode && (
-                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#c2410c', letterSpacing: '0.5px', marginBottom: 4 }}>{p.courseCode}</div>
-                      )}
-                      <h3 style={{ fontWeight: 800, fontSize: '0.98rem', color: '#1a1a2e', margin: '0 0 6px', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                        {p.courseName || p.title}
-                      </h3>
-                      {!p.courseName && p.title && <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '0 0 10px' }}>{p.title}</p>}
-                      {(p.faculty || p.intakeBatch || p.department || p.degreeLevel) && (
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-                          {p.faculty && <div style={{ display: 'inline-block', background: '#eff6ff', color: '#1d4ed8', padding: '3px 10px', borderRadius: 6, fontSize: '0.75rem' }}>{p.faculty}</div>}
-                          {p.degreeLevel && <div style={{ display: 'inline-block', background: '#fef3c7', color: '#d97706', padding: '3px 10px', borderRadius: 6, fontSize: '0.75rem' }}>{p.degreeLevel}</div>}
-                          {p.intakeBatch && <div style={{ display: 'inline-block', background: '#f8fafc', color: '#475569', padding: '3px 10px', borderRadius: 6, fontSize: '0.75rem' }}>{p.intakeBatch}</div>}
-                          {p.department && <div style={{ display: 'inline-block', background: '#f8fafc', color: '#475569', padding: '3px 10px', borderRadius: 6, fontSize: '0.75rem' }}>{p.department}</div>}
-                        </div>
-                      )}
-                      {p.description && <p style={{ color: '#64748b', fontSize: '0.8rem', lineHeight: 1.5, margin: '0 0 14px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.description}</p>}
-                      {p.fileSize != null && <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginBottom: 14 }}>PDF • {(p.fileSize / 1024 / 1024).toFixed(2)} MB</div>}
+            const isFolderOpen = expandedFolders[key] !== false; // open by default
+            const folderPapers = grouped.groups[key];
 
-                      <div style={{ marginTop: 'auto', display: 'flex', gap: 8 }}>
-                        <button onClick={() => handleView(p)} style={{ flex: 1, background: 'linear-gradient(135deg, #ef5a24, #ff8c5a)', color: 'white', border: 'none', borderRadius: 10, padding: '10px', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 12px rgba(239,90,36,0.22)' }}>View</button>
-                        <button onClick={() => handleDownload(p)} style={{ flex: 1, background: 'linear-gradient(135deg, #7c2d12, #c2410c)', color: 'white', border: 'none', borderRadius: 10, padding: '10px', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'Poppins, sans-serif' }}>PDF</button>
-                        {isLibrarian && <button onClick={() => handleDelete(p.id)} style={{ padding: '0 12px', background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1.5px solid rgba(239,68,68,0.2)', borderRadius: 10, fontWeight: 700, cursor: 'pointer', fontSize: '1rem' }}>Delete</button>}
+            return (
+              <div 
+                key={key} 
+                style={{ 
+                  background: 'white', 
+                  borderRadius: 16, 
+                  border: '1px solid #e8ecf0', 
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+                  overflow: 'hidden',
+                  transition: 'border-color 0.2s',
+                }}
+              >
+                {/* Folder Header */}
+                <div 
+                  onClick={() => toggleFolder(key)}
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between',
+                    padding: '16px 22px', 
+                    background: isFolderOpen ? '#fff7ed' : '#ffffff',
+                    borderBottom: isFolderOpen ? '1px solid #fed7aa' : 'none',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = isFolderOpen ? '#ffedd5' : '#f8fafc'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = isFolderOpen ? '#fff7ed' : '#ffffff'; }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{ 
+                      width: 42, 
+                      height: 42, 
+                      borderRadius: 10, 
+                      background: isFolderOpen ? 'linear-gradient(135deg, #ea580c, #c2410c)' : '#f1f5f9', 
+                      color: isFolderOpen ? 'white' : '#64748b',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      fontSize: '1.25rem',
+                      transition: 'all 0.2s'
+                    }}>
+                      <FiFolder />
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 800, fontSize: '1rem', color: '#1a1a2e' }}>
+                          {y}
+                        </span>
+                        <span style={{ background: '#ffedd5', color: '#c2410c', padding: '3px 10px', borderRadius: 6, fontSize: '0.78rem', fontWeight: 700 }}>
+                          Semester {aSem || s}
+                        </span>
+                        {s && s !== (aSem || s) && (
+                          <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '3px 10px', borderRadius: 6, fontSize: '0.78rem', fontWeight: 600 }}>
+                            {s}
+                          </span>
+                        )}
+                        <span style={{ color: '#9ca3af', fontSize: '0.8rem', fontWeight: 500 }}>
+                          ({folderPapers.length} paper{folderPapers.length === 1 ? '' : 's'})
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: 2 }}>
+                        Click row subject to instantly open OneDrive folder/search
                       </div>
                     </div>
-                  ))}
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openOneDriveForSubject(`${y} Semester ${aSem || s}`, '');
+                      }}
+                      style={{
+                        padding: '6px 14px',
+                        background: '#0078d4',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 8,
+                        fontSize: '0.76rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontFamily: 'Poppins, sans-serif',
+                        boxShadow: '0 2px 6px rgba(0,120,212,0.25)'
+                      }}
+                      title="Open entire semester in OneDrive"
+                    >
+                      <span>☁️</span> OneDrive <FiExternalLink size={12} />
+                    </button>
+                    <div style={{ color: '#9ca3af', display: 'flex', alignItems: 'center' }}>
+                      {isFolderOpen ? <FiFolderMinus size={18} /> : <FiFolderPlus size={18} />}
+                    </div>
+                  </div>
                 </div>
+
+                {/* Table View */}
+                {isFolderOpen && (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem', fontFamily: 'Poppins, sans-serif' }}>
+                      <thead>
+                        <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e8ecf0', color: '#64748b', fontWeight: 600, fontSize: '0.78rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                          <th style={{ padding: '12px 20px', width: 140 }}>Code</th>
+                          <th style={{ padding: '12px 20px' }}>Subject / Module</th>
+                          <th style={{ padding: '12px 16px', width: 130 }}>Type</th>
+                          <th style={{ padding: '12px 16px', width: 150 }}>Faculty / Batch</th>
+                          <th style={{ padding: '12px 16px', width: 100 }}>Size</th>
+                          <th style={{ padding: '12px 20px', textAlign: 'right', width: 140 }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {folderPapers.map((p, idx) => (
+                          <tr 
+                            key={p.id}
+                            style={{ 
+                              borderBottom: idx === folderPapers.length - 1 ? 'none' : '1px solid #f1f5f9',
+                              transition: 'background 0.15s'
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = '#fcf8f6'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                          >
+                            {/* Module Code */}
+                            <td style={{ padding: '14px 20px', verticalAlign: 'middle' }}>
+                              <span style={{ 
+                                fontWeight: 700, 
+                                color: '#c2410c', 
+                                background: '#ffedd5', 
+                                padding: '3px 8px', 
+                                borderRadius: 6, 
+                                fontSize: '0.78rem',
+                                letterSpacing: '0.4px',
+                                display: 'inline-block'
+                              }}>
+                                {p.courseCode || 'N/A'}
+                              </span>
+                            </td>
+
+                            {/* Subject / Module Title with clickable OneDrive redirect */}
+                            <td style={{ padding: '14px 20px', verticalAlign: 'middle' }}>
+                              <div 
+                                onClick={() => openOneDriveForSubject(p.courseName || p.title, p.courseCode)}
+                                title="Click to view in OneDrive"
+                                style={{ 
+                                  fontWeight: 700, 
+                                  color: '#1a1a2e', 
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 6,
+                                  transition: 'color 0.18s'
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.color = '#0078d4'; }}
+                                onMouseLeave={e => { e.currentTarget.style.color = '#1a1a2e'; }}
+                              >
+                                <span>{p.courseName || p.title}</span>
+                                <span style={{ color: '#0078d4', fontSize: '0.75rem', opacity: 0.85, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                  <FiExternalLink size={13} />
+                                </span>
+                              </div>
+                              {p.courseName && p.title && p.courseName !== p.title && (
+                                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>{p.title}</div>
+                              )}
+                              {p.description && (
+                                <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: 2 }}>{p.description}</div>
+                              )}
+                            </td>
+
+                            {/* Exam Type */}
+                            <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
+                              {p.examType ? (
+                                <span style={{ background: '#f1f5f9', color: '#475569', padding: '3px 9px', borderRadius: 6, fontSize: '0.74rem', fontWeight: 600 }}>
+                                  {p.examType}
+                                </span>
+                              ) : '—'}
+                            </td>
+
+                            {/* Faculty / Batch */}
+                            <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
+                              <div style={{ fontSize: '0.76rem', color: '#374151', fontWeight: 500 }}>
+                                {p.faculty || '—'}
+                              </div>
+                              {p.intakeBatch && (
+                                <div style={{ fontSize: '0.7rem', color: '#9ca3af', marginTop: 2 }}>
+                                  {p.intakeBatch}
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Size */}
+                            <td style={{ padding: '14px 16px', verticalAlign: 'middle', color: '#64748b', fontSize: '0.76rem' }}>
+                              {p.fileSize != null ? `${(p.fileSize / 1024 / 1024).toFixed(2)} MB` : 'PDF'}
+                            </td>
+
+                            {/* Actions */}
+                            <td style={{ padding: '14px 20px', verticalAlign: 'middle', textAlign: 'right' }}>
+                              <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                                <button 
+                                  onClick={() => openOneDriveForSubject(p.courseName || p.title, p.courseCode)}
+                                  title="Open in OneDrive" 
+                                  style={{ width: 34, height: 34, background: '#e0f2fe', color: '#0284c7', border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.18s' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = '#0284c7'; e.currentTarget.style.color = 'white'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = '#e0f2fe'; e.currentTarget.style.color = '#0284c7'; }}
+                                >
+                                  <FiExternalLink size={15} />
+                                </button>
+                                <button 
+                                  onClick={() => handleView(p)} 
+                                  title="Read Online" 
+                                  style={{ width: 34, height: 34, background: 'linear-gradient(135deg, #ef5a24, #ff7a45)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.18s', boxShadow: '0 2px 8px rgba(239,90,36,0.2)' }}
+                                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.transform = ''; }}
+                                >
+                                  <FiEye size={15} />
+                                </button>
+                                <button 
+                                  onClick={() => handleDownload(p)} 
+                                  title="Download PDF" 
+                                  style={{ width: 34, height: 34, background: 'linear-gradient(135deg, #7c2d12, #c2410c)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.18s', boxShadow: '0 2px 8px rgba(194,65,12,0.2)' }}
+                                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.transform = ''; }}
+                                >
+                                  <FiDownload size={15} />
+                                </button>
+                                {isLibrarian && (
+                                  <button 
+                                    onClick={() => handleDelete(p.id)} 
+                                    title="Delete" 
+                                    style={{ width: 34, height: 34, background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.18s' }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = 'white'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.color = '#ef4444'; }}
+                                  >
+                                    <FiTrash2 size={14} />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -371,6 +634,57 @@ const PastPapers = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* OneDrive Link Configuration Modal */}
+      {showOneDriveConfig && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, backdropFilter: 'blur(4px)', padding: 20 }} onClick={e => { if (e.target === e.currentTarget) setShowOneDriveConfig(false); }}>
+          <div style={{ background: 'white', borderRadius: 20, padding: '28px', width: '100%', maxWidth: 540 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: '1.4rem' }}>☁️</span>
+                <h3 style={{ fontWeight: 800, fontSize: '1.2rem', color: '#1a1a2e', margin: 0 }}>OneDrive Cloud Folder</h3>
+              </div>
+              <button onClick={() => setShowOneDriveConfig(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', fontSize: '1rem', color: '#64748b' }}>×</button>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 16px', lineHeight: 1.5 }}>
+              Enter the main OneDrive or SharePoint shared link for past papers. When students click any subject in the folder table, they will automatically be redirected to OneDrive.
+            </p>
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.78rem', color: '#374151', marginBottom: 6 }}>OneDrive / SharePoint Shared URL</label>
+              <input
+                type="url"
+                value={tempOneDriveUrl}
+                onChange={e => setTempOneDriveUrl(e.target.value)}
+                placeholder="https://1drv.ms/... or https://yourorganization-my.sharepoint.com/..."
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button 
+                type="button" 
+                onClick={() => { setTempOneDriveUrl('https://onedrive.live.com'); }}
+                style={{ padding: '10px 16px', background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'Poppins, sans-serif' }}
+              >
+                Reset Default
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setShowOneDriveConfig(false)} 
+                style={{ flex: 1, padding: '10px 16px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: 10, fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'Poppins, sans-serif' }}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={saveOneDriveUrl} 
+                style={{ flex: 1, padding: '10px 16px', background: '#0078d4', color: 'white', border: 'none', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'Poppins, sans-serif' }}
+              >
+                Save URL
+              </button>
+            </div>
           </div>
         </div>
       )}

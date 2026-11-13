@@ -109,65 +109,49 @@ const Events = () => {
         background: 'white', borderRadius: 20, padding: '20px 24px',
         border: '1px solid #e8ecf0', boxShadow: '0 12px 40px rgba(0,0,0,0.05)',
         marginBottom: 28,
+        display: 'flex', flexDirection: 'column', gap: 16,
       }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) auto auto',
-          gap: 16, alignItems: 'center',
-        }}>
-          <input
-            type="text"
-            placeholder="Search events by title, description, or location..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              padding: '12px 16px',
-              borderRadius: 12,
-              border: '1.5px solid #e5e7eb',
-              fontSize: '0.9rem',
-              fontFamily: 'Poppins, sans-serif',
-              outline: 'none',
-              width: '100%',
-            }}
-          />
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 999,
-                  border: '1.5px solid',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  fontFamily: 'Poppins, sans-serif',
-                  background: selectedCategory === cat ? '#1a1a2e' : 'white',
-                  borderColor: selectedCategory === cat ? '#1a1a2e' : '#e5e7eb',
-                  color: selectedCategory === cat ? 'white' : '#374151',
-                  transition: 'all 0.18s',
-                }}
-              >
-                {cat}
-              </button>
-            ))}
+        {/* Top bar: Search input + View Mode switcher */}
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          <div style={{ flex: 1, position: 'relative' }}>
+            <span style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: '1rem', pointerEvents: 'none' }}>🔍</span>
+            <input
+              type="text"
+              placeholder="Search events by title, description, or location..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                padding: '12px 16px 12px 44px',
+                borderRadius: 12,
+                border: '1.5px solid #e5e7eb',
+                fontSize: '0.9rem',
+                fontFamily: 'Poppins, sans-serif',
+                outline: 'none',
+                width: '100%',
+                boxSizing: 'border-box',
+                transition: 'border-color 0.2s',
+              }}
+              onFocus={e => e.target.style.borderColor = '#ef5a24'}
+              onBlur={e => e.target.style.borderColor = '#e5e7eb'}
+            />
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+
+          {/* View toggle (segmented control style) */}
+          <div style={{ display: 'flex', background: '#f3f4f6', padding: 4, borderRadius: 12, border: '1px solid #e5e7eb', flexShrink: 0 }}>
             <button
               onClick={() => setViewMode('list')}
               style={{
-                padding: '8px 16px',
-                borderRadius: 999,
-                border: '1.5px solid',
-                fontSize: '0.82rem',
+                padding: '8px 18px',
+                borderRadius: 9,
+                border: 'none',
+                fontSize: '0.85rem',
                 fontWeight: 600,
                 cursor: 'pointer',
                 fontFamily: 'Poppins, sans-serif',
-                background: viewMode === 'list' ? '#ef5a24' : 'white',
-                borderColor: viewMode === 'list' ? '#ef5a24' : '#e5e7eb',
-                color: viewMode === 'list' ? 'white' : '#374151',
-                transition: 'all 0.18s',
+                background: viewMode === 'list' ? '#ef5a24' : 'transparent',
+                color: viewMode === 'list' ? 'white' : '#4b5563',
+                boxShadow: viewMode === 'list' ? '0 2px 6px rgba(239,90,36,0.25)' : 'none',
+                transition: 'all 0.2s',
               }}
             >
               List
@@ -175,22 +159,47 @@ const Events = () => {
             <button
               onClick={() => setViewMode('calendar')}
               style={{
-                padding: '8px 16px',
-                borderRadius: 999,
-                border: '1.5px solid',
-                fontSize: '0.82rem',
+                padding: '8px 18px',
+                borderRadius: 9,
+                border: 'none',
+                fontSize: '0.85rem',
                 fontWeight: 600,
                 cursor: 'pointer',
                 fontFamily: 'Poppins, sans-serif',
-                background: viewMode === 'calendar' ? '#ef5a24' : 'white',
-                borderColor: viewMode === 'calendar' ? '#ef5a24' : '#e5e7eb',
-                color: viewMode === 'calendar' ? 'white' : '#374151',
-                transition: 'all 0.18s',
+                background: viewMode === 'calendar' ? '#ef5a24' : 'transparent',
+                color: viewMode === 'calendar' ? 'white' : '#4b5563',
+                boxShadow: viewMode === 'calendar' ? '0 2px 6px rgba(239,90,36,0.25)' : 'none',
+                transition: 'all 0.2s',
               }}
             >
               Calendar
             </button>
           </div>
+        </div>
+
+        {/* Category Pills Row */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', paddingTop: 4, borderTop: '1px solid #f1f5f9' }}>
+          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#9ca3af', marginRight: 4 }}>Filter:</span>
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              style={{
+                padding: '6px 16px',
+                borderRadius: 999,
+                border: selectedCategory === cat ? '1.5px solid #1a1a2e' : '1.5px solid #e5e7eb',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'Poppins, sans-serif',
+                background: selectedCategory === cat ? '#1a1a2e' : 'white',
+                color: selectedCategory === cat ? 'white' : '#4b5563',
+                transition: 'all 0.18s',
+              }}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
       </div>
 

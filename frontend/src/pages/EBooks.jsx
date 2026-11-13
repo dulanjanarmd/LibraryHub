@@ -2,33 +2,34 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ebookAPI } from '../services/api';
 import { Spinner } from 'react-bootstrap';
+import { FiEye, FiDownload, FiEdit2, FiTrash2 } from 'react-icons/fi';
 
 const emptyEbookForm = { title: '', author: '', isbn: '', description: '', publisher: '', publicationYear: '', language: 'English' };
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
-const ActionBtn = ({ onClick, color, bg, border, children, disabled }) => (
+const ActionBtn = ({ onClick, color, bg, border, title, children, disabled }) => (
   <button
     onClick={onClick}
     disabled={disabled}
+    title={title}
     style={{
-      flex: 1,
-      minWidth: 0,
-      padding: '9px 8px',
+      width: 38, height: 38,
+      padding: 0,
       background: bg,
       color: color,
       border: border || 'none',
       borderRadius: 10,
       fontWeight: 700,
-      fontSize: '0.8rem',
+      fontSize: '1.1rem',
       fontFamily: 'Poppins, sans-serif',
       cursor: disabled ? 'not-allowed' : 'pointer',
       transition: 'all 0.18s',
-      whiteSpace: 'nowrap',
-      textAlign: 'center',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0,
       opacity: disabled ? 0.6 : 1,
     }}
-    onMouseEnter={e => { if (!disabled) e.currentTarget.style.filter = 'brightness(1.08)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-    onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}
+    onMouseEnter={e => { if (!disabled) { e.currentTarget.style.filter = 'brightness(1.12)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.18)'; } }}
+    onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
   >
     {children}
   </button>
@@ -228,66 +229,67 @@ const EBooks = () => {
           <div style={{ fontSize: '0.88rem' }}>Adjust your search terms to find digital content.</div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 220px))', gap: 20 }}>
           {ebooks.map(ebook => (
-            <div key={ebook.id} style={{ background: 'white', borderRadius: 16, overflow: 'hidden', border: '1px solid #e8ecf0', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', transition: 'all 0.2s' }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = 'rgba(139,92,246,0.3)'; }}
+            <div key={ebook.id} style={{ background: 'white', borderRadius: 16, overflow: 'hidden', border: '1px solid #e8ecf0', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', transition: 'all 0.2s', width: '100%', maxWidth: 220 }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(139,92,246,0.1)'; e.currentTarget.style.borderColor = 'rgba(139,92,246,0.3)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)'; e.currentTarget.style.borderColor = '#e8ecf0'; }}>
               {ebook.coverImageUrl ? (
-                <div style={{ height: 180, background: '#f8fafc', overflow: 'hidden', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ height: 160, flexShrink: 0, background: '#f8fafc', overflow: 'hidden', borderBottom: '1px solid #f1f5f9' }}>
                   <img src={ebook.coverImageUrl} alt={ebook.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
                 </div>
               ) : (
-                <div style={{ height: 140, background: 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(109,40,217,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 20, position: 'relative' }}>
-                  <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(109,40,217,0.15))', color: '#6d28d9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem' }}></div>
-                  <span style={{ marginLeft: 'auto', background: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '3px 10px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700 }}>E-BOOK</span>
+                <div style={{ height: 160, flexShrink: 0, background: 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(109,40,217,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 20, position: 'relative' }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(109,40,217,0.15))', color: '#6d28d9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>📖</div>
+                  <span style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(16,185,129,0.15)', color: '#10b981', padding: '2px 7px', borderRadius: 6, fontSize: '0.65rem', fontWeight: 700 }}>E-BOOK</span>
                 </div>
               )}
-              <div style={{ padding: '20px 22px 22px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <h3 style={{ fontWeight: 800, fontSize: '1.05rem', color: '#1a1a2e', margin: '0 0 6px', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ebook.title}</h3>
-                <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0 0 12px' }}>by {ebook.author}</p>
-                {ebook.description && <p style={{ color: '#475569', fontSize: '0.85rem', lineHeight: 1.6, margin: '0 0 16px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ebook.description}</p>}
+              <div style={{ padding: '12px 14px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <h3 style={{ fontWeight: 700, fontSize: '0.88rem', color: '#1a1a2e', margin: '0 0 3px', lineHeight: 1.3, height: '2.6em', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={ebook.title}>{ebook.title}</h3>
+                <p style={{ color: '#64748b', fontSize: '0.75rem', margin: '0 0 8px', height: '1.2em', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={`by ${ebook.author}`}>by {ebook.author}</p>
 
-                <div style={{ marginTop: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, background: '#f8fafc', padding: '12px', borderRadius: 8, marginBottom: 16 }}>
-                  <div><div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Size</div><div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>{ebook.fileSize != null ? `${(ebook.fileSize / 1024 / 1024).toFixed(1)} MB` : '—'}</div></div>
-                  <div><div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Format</div><div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>{ebook.fileFormat || 'PDF'}</div></div>
+                <div style={{ marginTop: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, background: '#f8fafc', padding: '6px 8px', borderRadius: 8, marginBottom: 10 }}>
+                  <div><div style={{ fontSize: '0.65rem', color: '#9ca3af' }}>Size</div><div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#374151' }}>{ebook.fileSize != null ? `${(ebook.fileSize / 1024 / 1024).toFixed(1)} MB` : '—'}</div></div>
+                  <div><div style={{ fontSize: '0.65rem', color: '#9ca3af' }}>Format</div><div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#374151' }}>{ebook.fileFormat || 'PDF'}</div></div>
                 </div>
 
-                {/* Action Buttons — unified grid */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: isLibrarian ? '1fr 1fr' : '1fr 1fr',
-                  gap: 8,
-                }}>
+                {/* Action Buttons — sleek modern icon-only */}
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
                   <ActionBtn
                     onClick={() => handleViewOnline(ebook)}
-                    bg="linear-gradient(135deg, #ef5a24, #ff8c5a)"
+                    bg="linear-gradient(135deg, #ef5a24, #ff7a45)"
                     color="white"
+                    title="Read Online"
                   >
-                    Read Online
+                    <FiEye size={14} />
                   </ActionBtn>
                   <ActionBtn
                     onClick={() => handleDownload(ebook.id, ebook.title)}
                     bg="linear-gradient(135deg, #4c1d95, #6d28d9)"
                     color="white"
+                    title="Download"
                   >
-                    Download
+                    <FiDownload size={14} />
                   </ActionBtn>
                   {isLibrarian && (
                     <>
                       <ActionBtn
                         onClick={() => openEdit(ebook)}
-                        bg="linear-gradient(135deg, #3730a3, #6366f1)"
-                        color="white"
+                        bg="#f1f5f9"
+                        color="#475569"
+                        border="1px solid #e2e8f0"
+                        title="Edit"
                       >
-                        Edit
+                        <FiEdit2 size={13} />
                       </ActionBtn>
                       <ActionBtn
                         onClick={() => handleDelete(ebook.id)}
-                        bg="linear-gradient(135deg, #b91c1c, #ef4444)"
-                        color="white"
+                        bg="rgba(239,68,68,0.08)"
+                        color="#ef4444"
+                        border="1px solid rgba(239,68,68,0.2)"
+                        title="Delete"
                       >
-                        Delete
+                        <FiTrash2 size={13} />
                       </ActionBtn>
                     </>
                   )}
